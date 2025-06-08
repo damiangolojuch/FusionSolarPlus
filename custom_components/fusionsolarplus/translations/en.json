@@ -1,0 +1,44 @@
+{
+  "title": "FusionSolarPlus",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Login to FusionSolar",
+        "description": "Enter your FusionSolar credentials.",
+        "data": {
+          "username": "Username",
+          "password": "Password"
+        }
+      },
+      "choose_type": {
+        "title": "Device Type",
+        "description": "What would you like to set up?",
+        "data": {
+          "device_type": "Device Type"
+        }
+      },
+      "select_inverter": {
+        "title": "Select Inverter",
+        "description": "Choose an inverter from your account.",
+        "data": {
+          "device_name": "Inverter"
+        }
+      },
+      "select_plant": {
+        "title": "Select Plant",
+        "description": "Choose an plant from your account.",
+        "data": {
+          "device_name": "Plant"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Invalid username or password.",
+      "fetch_error": "Failed to fetch devices.",
+      "unknown": "Unknown error occurred."
+    },
+    "abort": {
+      "fetch_error": "Could not fetch device list from FusionSolar."
+    }
+  }
+}
