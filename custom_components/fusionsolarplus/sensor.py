@@ -1,6 +1,7 @@
 import logging
 from functools import partial
 from datetime import timedelta
+from .api.fusion_solar_py.client import FusionSolarClient
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
