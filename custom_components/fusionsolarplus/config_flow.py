@@ -1,16 +1,10 @@
 import logging
-import asyncio
 from functools import partial
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.const import CONF_USERNAME, CONF_PASSWORD
-from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
-from homeassistant.helpers.device_registry import async_get as async_get_device_registry
 from custom_components.fusionsolarplus.const import (
     DOMAIN,
-    CONF_USERNAME,
-    CONF_PASSWORD,
     CONF_DEVICE_TYPE,
     CONF_DEVICE_ID,
     CONF_DEVICE_NAME

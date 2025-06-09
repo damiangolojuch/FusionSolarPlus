@@ -12,5 +12,5 @@
   "dependencies": [],
   "codeowners": ["@jortvanschijndel"],
   "iot_class": "cloud_polling",
-  "supported_platforms": ["sensor"]
+  "issue_tracker": "https://github.com/JortvanSchijndel/FusionSolarPlus/issues"
 }

@@ -28,7 +28,7 @@ def _parse_float(value: str) -> float:
             return 0.0
 
         return float(_d.quantize(DEC_PRECISION))
-    except Exception as exc:
+    except Exception:
         _LOGGER.error("cannot parse float from json: '%s'", value, exc_info=True)
         return 0.0
 
@@ -972,7 +972,7 @@ class FusionSolarClient:
                 else:
                     extracted_data[key_name] = float(key_value)
             # if anything goes wrong, simply store "None" as value
-            except Exception as e:
+            except Exception:
                 _LOGGER.debug(f"Failed to parse {key_name} = {key_value}")
                 extracted_data[key_name] = None
 

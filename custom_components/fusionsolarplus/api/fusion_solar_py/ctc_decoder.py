@@ -20,9 +20,13 @@ except ImportError:
 
 NEG_INF = -float("inf")
 
+
 def make_new_beam():
-  fn = lambda : (NEG_INF, NEG_INF)
+  def fn():
+    return (NEG_INF, NEG_INF)
+
   return collections.defaultdict(fn)
+
 
 def logsumexp(*args):
   """
