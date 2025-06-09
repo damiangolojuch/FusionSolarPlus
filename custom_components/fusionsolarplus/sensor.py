@@ -1,4 +1,5 @@
 import logging
+from functools import partial
 from datetime import timedelta
 
 from homeassistant.components.sensor import (
@@ -269,41 +270,36 @@ async def async_setup_entry(hass, entry, async_add_entities):
     #
     # API for Inverter
     #
-    if device_type == "Inverter":
 
-        async def async_get_data():
-            client = hass.data[DOMAIN][entry.entry_id]
-            try:
-                return await hass.async_add_executor_job(
+    async def async_get_data():
+        client = hass.data[DOMAIN][entry.entry_id]
+        # Check if session is active -> false? re-log
+        if not await hass.async_add_executor_job(client.is_session_active):
+            _LOGGER.warning("Session inactive, re-logging in to FusionSolar API")
+            username = entry.data["username"]
+            password = entry.data["password"]
+            new_client = await hass.async_add_executor_job(
+                partial(FusionSolarClient, username, password, captcha_model_path=hass)
+            )
+            hass.data[DOMAIN][entry.entry_id] = new_client
+            client = new_client
+        try:
+            if device_type == "Inverter":
+                response = await hass.async_add_executor_job(
                     client.get_real_time_data, device_id
                 )
-            except Exception as err:
-                _LOGGER.error("Error fetching FusionSolar Inverter data: %s", err)
-                raise UpdateFailed(f"Error fetching data: {err}")
-
-        signals = INVERTER_SIGNALS
-        entity_class = FusionSolarInverterSensor
-    #
-    # API for Plant
-    #
-    elif device_type == "Plant":
-
-        async def async_get_data():
-            client = hass.data[DOMAIN][entry.entry_id]
-            try:
-                return await hass.async_add_executor_job(
+            elif device_type == "Plant":
+                response = await hass.async_add_executor_job(
                     client.get_current_plant_data, device_id
                 )
-            except Exception as err:
-                _LOGGER.error("Error fetching FusionSolar Plant data: %s", err)
-                raise UpdateFailed(f"Error fetching data: {err}")
-
-        signals = PLANT_SIGNALS
-        entity_class = FusionSolarPlantSensor
-
-    else:
-        _LOGGER.error("Unsupported device type: %s", device_type)
-        return
+            else:
+                raise Exception("Unsupported device type")
+            return response
+        except Exception as err:
+            if "response" in locals():
+                _LOGGER.error("FusionSolar API raw response: %s", str(response))
+            _LOGGER.error("Error fetching FusionSolar %s data: %s", device_type, err)
+            raise UpdateFailed(f"Error fetching data: {err}")
 
     coordinator = DataUpdateCoordinator(
         hass,
@@ -315,32 +311,29 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
     await coordinator.async_config_entry_first_refresh()
 
-    entities = []
-    for signal in signals:
-        if device_type == "Inverter":
-            entities.append(
-                entity_class(
-                    coordinator,
-                    signal["id"],
-                    signal.get("custom_name", signal["name"]),
-                    signal["unit"],
-                    device_info,
-                    signal.get("device_class"),
-                    signal.get("state_class"),
-                )
-            )
-        elif device_type == "Plant":
-            entities.append(
-                entity_class(
-                    coordinator,
-                    signal["key"],
-                    signal.get("custom_name", signal["name"]),
-                    signal["unit"],
-                    device_info,
-                    signal.get("device_class"),
-                    signal.get("state_class"),
-                )
-            )
+    if device_type == "Inverter":
+        signals = INVERTER_SIGNALS
+        id_key = "id"
+        entity_class = FusionSolarInverterSensor
+    elif device_type == "Plant":
+        signals = PLANT_SIGNALS
+        id_key = "key"
+        entity_class = FusionSolarPlantSensor
+    else:
+        _LOGGER.error("Unknown device type: %s", device_type)
+
+    entities = [
+        entity_class(
+            coordinator,
+            signal[id_key],
+            signal.get("custom_name", signal["name"]),
+            signal["unit"],
+            device_info,
+            signal.get("device_class"),
+            signal.get("state_class"),
+        )
+        for signal in signals
+    ]
 
     async_add_entities(entities)
 
