@@ -10,7 +10,11 @@ from typing import Any, Optional
 
 import requests
 
-from .exceptions import AuthenticationException, CaptchaRequiredException, FusionSolarException
+from .exceptions import (
+    AuthenticationException,
+    CaptchaRequiredException,
+    FusionSolarException,
+)
 from .constants import MODULE_SIGNALS
 from .encryption import encrypt_password, get_secure_random
 
@@ -18,8 +22,10 @@ from .encryption import encrypt_password, get_secure_random
 # global logger object
 _LOGGER = logging.getLogger(__name__)
 
-DEC_PRECISION = Decimal('1.00000000')
-MAX_JS_NUMBER = Decimal('1.7976931348623157E308')
+DEC_PRECISION = Decimal("1.00000000")
+MAX_JS_NUMBER = Decimal("1.7976931348623157E308")
+
+
 def _parse_float(value: str) -> float:
     try:
         _d = Decimal(value)
@@ -33,7 +39,6 @@ def _parse_float(value: str) -> float:
         return 0.0
 
 
-
 class PowerStatus:
     """Class representing the basic power status"""
 
@@ -42,7 +47,7 @@ class PowerStatus:
         current_power_kw: float,
         energy_today_kwh: float = None,
         energy_kwh: float = None,
-        **kwargs
+        **kwargs,
     ):
         """Create a new PowerStatus object
         :param current_power_kw: The currently produced power in kW
@@ -57,26 +62,29 @@ class PowerStatus:
         self.energy_today_kwh = energy_today_kwh
         self.energy_kwh = energy_kwh
 
-        if 'total_power_today_kwh' in kwargs.keys() and not energy_today_kwh:
+        if "total_power_today_kwh" in kwargs.keys() and not energy_today_kwh:
             _LOGGER.warning(
                 "The parameter 'total_power_today_kwh' is deprecated. Please use "
-                "'energy_today_kwh' instead.", DeprecationWarning
+                "'energy_today_kwh' instead.",
+                DeprecationWarning,
             )
-            self.energy_today_kwh = kwargs['total_power_today_kwh']
+            self.energy_today_kwh = kwargs["total_power_today_kwh"]
 
-        if 'total_power_kwh' in kwargs.keys() and not energy_kwh:
+        if "total_power_kwh" in kwargs.keys() and not energy_kwh:
             _LOGGER.warning(
                 "The parameter 'total_power_kwh' is deprecated. Please use "
-                "'energy_kwh' instead.", DeprecationWarning
+                "'energy_kwh' instead.",
+                DeprecationWarning,
             )
-            self.energy_kwh = kwargs['total_power_kwh']
+            self.energy_kwh = kwargs["total_power_kwh"]
 
     @property
     def total_power_today_kwh(self):
         """The total power produced that day in kWh"""
         _LOGGER.warning(
             "The parameter 'total_power_today_kwh' is deprecated. Please use "
-            "'energy_today_kwh' instead.")
+            "'energy_today_kwh' instead."
+        )
         return self.energy_today_kwh
 
     @property
@@ -84,28 +92,31 @@ class PowerStatus:
         """The total power ever produced"""
         _LOGGER.warning(
             "The parameter 'total_power_kwh' is deprecated. Please use "
-            "'energy_kwh' instead.")
+            "'energy_kwh' instead."
+        )
         return self.energy_kwh
 
     def __repr__(self):
-        return (f"PowerStatus(current_power_kw={self.current_power_kw}, "
-                f"energy_today_kwh={self.energy_today_kwh}, "
-                f"energy_kwh={self.energy_kwh})")
+        return (
+            f"PowerStatus(current_power_kw={self.current_power_kw}, "
+            f"energy_today_kwh={self.energy_today_kwh}, "
+            f"energy_kwh={self.energy_kwh})"
+        )
 
 
 class BatteryStatus:
     """Class representing the basic battery status"""
 
     def __init__(
-            self,
-            state_of_charge: float,
-            rated_capacity: float,
-            operating_status: str,
-            backup_time: str,
-            bus_voltage: float,
-            total_charged_today_kwh: float,
-            total_discharged_today_kwh: float,
-            current_charge_discharge_kw: float,
+        self,
+        state_of_charge: float,
+        rated_capacity: float,
+        operating_status: str,
+        backup_time: str,
+        bus_voltage: float,
+        total_charged_today_kwh: float,
+        total_discharged_today_kwh: float,
+        current_charge_discharge_kw: float,
     ):
         """Create a new BatteryStatus object
         :param state_of_charge: The current state of charge in %
@@ -147,6 +158,7 @@ class BatteryStatus:
             f"current_charge_discharge_kw={self.current_charge_discharge_kw}, "
         )
 
+
 def logged_in(func):
     """
     Decorator to make sure user is logged in.
@@ -164,11 +176,11 @@ def logged_in(func):
 
         try:
             result = func(self, *args, **kwargs)
-        except (json.JSONDecodeError):
+        except json.JSONDecodeError:
             # this may indicate that the login failed
             _LOGGER.error("Login apparently failed. Received invalid response.")
             raise FusionSolarException("Failed to reset session and login again.")
-        
+
         return result
 
     return wrapper
@@ -183,7 +195,7 @@ def with_solver(func):
     def wrapper(self, *args, **kwargs):
         try:
             result = func(self, *args, **kwargs)
-        except (CaptchaRequiredException):
+        except CaptchaRequiredException:
             _LOGGER.info("solving captcha and retrying login")
             # don't allow another captcha exception to be caught by this wrapper
             kwargs["allow_captcha_exception"] = False
@@ -192,7 +204,9 @@ def with_solver(func):
             self._captcha_verify_code = None
             captcha_present = self._check_captcha()
             if not captcha_present:
-                raise AuthenticationException("Login failed: Captcha required but captcha not found.")
+                raise AuthenticationException(
+                    "Login failed: Captcha required but captcha not found."
+                )
 
             if self._captcha_verify_code is not None:
                 result = func(self, *args, **kwargs)
@@ -202,13 +216,18 @@ def with_solver(func):
 
     return wrapper
 
+
 class FusionSolarClient:
-    """The main client to interact with the Fusion Solar API
-    """
+    """The main client to interact with the Fusion Solar API"""
 
     def __init__(
-        self, username: str, password: str, huawei_subdomain: str = "region01eu5",
-        session: Optional[requests.Session] = None, captcha_model_path: Optional[str] = None, captcha_device: Optional[Any] = ['CPUExecutionProvider']
+        self,
+        username: str,
+        password: str,
+        huawei_subdomain: str = "region01eu5",
+        session: Optional[requests.Session] = None,
+        captcha_model_path: Optional[str] = None,
+        captcha_device: Optional[Any] = ["CPUExecutionProvider"],
     ) -> None:
         """Initialiazes a new FusionSolarClient instance. This is the main
            class to interact with the FusionSolar API.
@@ -254,8 +273,7 @@ class FusionSolarClient:
             self._configure_session()
 
     def log_out(self):
-        """Log out from the FusionSolarAPI
-        """
+        """Log out from the FusionSolarAPI"""
         self._session.get(
             url=f"https://{self._huawei_subdomain}.fusionsolar.huawei.com/unisess/v1/logout",
             params={
@@ -274,7 +292,9 @@ class FusionSolarClient:
         try:
             import bs4
         except ImportError:
-            _LOGGER.error("Required libraries for CAPTCHA solving are not available. Please install the package using pip install fusion_solar_py[captcha].")
+            _LOGGER.error(
+                "Required libraries for CAPTCHA solving are not available. Please install the package using pip install fusion_solar_py[captcha]."
+            )
             raise Exception("Required libraries for CAPTCHA solving are not available.")
 
         _LOGGER.debug("Checking if captcha is required")
@@ -285,23 +305,29 @@ class FusionSolarClient:
         }
         r = self._session.get(url=url, params=params)
         r.raise_for_status()
-        soup = bs4.BeautifulSoup(r.text, 'html.parser')
+        soup = bs4.BeautifulSoup(r.text, "html.parser")
         captcha_exists = soup.find(id="verificationCodeInput")
         if captcha_exists:
             captcha = self._get_captcha()
             self._init_solver()
             self._captcha_verify_code = self._captcha_solver.solve_captcha(captcha)
-            r = self._session.post(url=f"https://{self._login_subdomain}.fusionsolar.huawei.com/unisso/preValidVerifycode",
-                                   data={"verifycode": self._captcha_verify_code, "index": 0})
+            r = self._session.post(
+                url=f"https://{self._login_subdomain}.fusionsolar.huawei.com/unisso/preValidVerifycode",
+                data={"verifycode": self._captcha_verify_code, "index": 0},
+            )
             r.raise_for_status()
             if r.text != "success":
-                raise AuthenticationException("Login failed: captcha prevalidverify fail.")
+                raise AuthenticationException(
+                    "Login failed: captcha prevalidverify fail."
+                )
             return True
         else:
             return False
 
     def _get_captcha(self):
-        url = f"https://{self._login_subdomain}.fusionsolar.huawei.com/unisso/verifycode"
+        url = (
+            f"https://{self._login_subdomain}.fusionsolar.huawei.com/unisso/verifycode"
+        )
         params = {"timestamp": round(time.time() * 1000)}
         r = self._session.get(url=url, params=params)
         r.raise_for_status()
@@ -310,20 +336,27 @@ class FusionSolarClient:
 
     def _init_solver(self):
         if self._captcha_model_path is None:
-            raise ValueError("Captcha required but no captcha solver model provided. Please refer to the documentation for more information.")
+            raise ValueError(
+                "Captcha required but no captcha solver model provided. Please refer to the documentation for more information."
+            )
         if self._captcha_solver is not None:
             return
 
         from .captcha_solver_onnx import Solver
+
         self._captcha_solver = Solver(self._captcha_model_path, self.captcha_device)
 
     @with_solver
     def _login(self, allow_captcha_exception=True):
         # retrieve the public key in order to test which loging function to use
-        key_request = self._session.get("https://eu5.fusionsolar.huawei.com/unisso/pubkey")
+        key_request = self._session.get(
+            "https://eu5.fusionsolar.huawei.com/unisso/pubkey"
+        )
 
         if key_request.status_code != 200:
-            _LOGGER.error(f"Failed to retrieve public key. Status code = {key_request.status_code}")
+            _LOGGER.error(
+                f"Failed to retrieve public key. Status code = {key_request.status_code}"
+            )
             raise FusionSolarException("Failed to retrieve public key.")
 
         key_data = key_request.json()
@@ -333,17 +366,19 @@ class FusionSolarClient:
         url_params = {}
         password = self._password
 
-        if key_data['enableEncrypt']:
+        if key_data["enableEncrypt"]:
             _LOGGER.debug("Using V3 loging function with encrypted passwords")
             url = f"https://{self._login_subdomain}.fusionsolar.huawei.com/unisso/v3/validateUser.action"
-            url_params['timeStamp'] = key_data['timeStamp']
-            url_params['nonce'] = get_secure_random()
-            
+            url_params["timeStamp"] = key_data["timeStamp"]
+            url_params["nonce"] = get_secure_random()
+
             # encrypt the password
             password = encrypt_password(key_data=key_data, password=password)
         else:
             url_params["decision"] = 1
-            url_params["service"] = f"https://{self._huawei_subdomain}.fusionsolar.huawei.com/unisess/v1/auth?service=/netecowebext/home/index.html#/LOGIN",
+            url_params["service"] = (
+                f"https://{self._huawei_subdomain}.fusionsolar.huawei.com/unisess/v1/auth?service=/netecowebext/home/index.html#/LOGIN",
+            )
 
         json_data = {
             "organizationName": "",
@@ -372,8 +407,8 @@ class FusionSolarClient:
         # but requires another request to start the session
         if login_response["errorCode"] == "470":
             _LOGGER.debug("New loging procedure successful, sending additional request")
-            target_subdomain = login_response['respMultiRegionName'][1]
-            target_url = f"https://{self._login_subdomain}.fusionsolar.huawei.com{ target_subdomain }"
+            target_subdomain = login_response["respMultiRegionName"][1]
+            target_url = f"https://{self._login_subdomain}.fusionsolar.huawei.com{target_subdomain}"
             new_procedure_response = self._session.get(target_url)
             new_procedure_response.raise_for_status()
 
@@ -385,20 +420,27 @@ class FusionSolarClient:
         if error:
             # only attempt to solve the captcha if it hasn't been tried before and
             # a model path is available
-            if "incorrect verification code" in error.lower() and allow_captcha_exception and self._captcha_model_path:
-                raise CaptchaRequiredException("Login failed: Incorrect verification code.")
+            if (
+                "incorrect verification code" in error.lower()
+                and allow_captcha_exception
+                and self._captcha_model_path
+            ):
+                raise CaptchaRequiredException(
+                    "Login failed: Incorrect verification code."
+                )
             raise AuthenticationException(
-                f"Failed to login into FusionSolarAPI: { error }"
+                f"Failed to login into FusionSolarAPI: {error}"
             )
 
     def _configure_session(self):
-        """Logs into the Fusion Solar API. Raises an exception if the login fails.
-        """
+        """Logs into the Fusion Solar API. Raises an exception if the login fails."""
         # check the login credentials right away
         _LOGGER.debug("Logging into Huawei Fusion Solar API")
 
         # set the user agent
-        self._session.headers["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"
+        self._session.headers["User-Agent"] = (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"
+        )
 
         self._login()
 
@@ -406,7 +448,9 @@ class FusionSolarClient:
         payload = self.keep_alive()
 
         if not payload:
-            raise FusionSolarException("Login failed. No payload received from keep-alive.")
+            raise FusionSolarException(
+                "Login failed. No payload received from keep-alive."
+            )
 
         # get the main id
         r = self._session.get(
@@ -419,8 +463,13 @@ class FusionSolarClient:
             try:
                 data = r.json()
 
-                if data["exceptionId"] == "Query company failed." or data["exceptionId"] == "bad status":
-                    raise AuthenticationException("Invalid response received. Please check the correct Huawei subdomain.")
+                if (
+                    data["exceptionId"] == "Query company failed."
+                    or data["exceptionId"] == "bad status"
+                ):
+                    raise AuthenticationException(
+                        "Invalid response received. Please check the correct Huawei subdomain."
+                    )
             except json.JSONDecodeError as e:
                 _LOGGER.error("Login validation failed. Failed to process response.")
                 _LOGGER.exception(e)
@@ -431,16 +480,18 @@ class FusionSolarClient:
         # catch an incorrect subdomain
         response_text = r.content.decode()
 
-        if not response_text.strip().startswith("{\"data\":"):
-            raise AuthenticationException("Invalid response received. Please check the correct Huawei subdomain.")
+        if not response_text.strip().startswith('{"data":'):
+            raise AuthenticationException(
+                "Invalid response received. Please check the correct Huawei subdomain."
+            )
 
         response_data = r.json()
 
         if "data" not in response_data:
-            _LOGGER.error(f"Failed to retrieve data object. {json.dumps(response_data)}")
-            raise AuthenticationException(
-                "Failed to login into FusionSolarAPI."
+            _LOGGER.error(
+                f"Failed to retrieve data object. {json.dumps(response_data)}"
             )
+            raise AuthenticationException("Failed to login into FusionSolarAPI.")
 
         self._company_id = r.json()["data"]["moDn"]
 
@@ -467,9 +518,11 @@ class FusionSolarClient:
         """
         if not self._session:
             return False
-        
+
         # send the request
-        r = self._session.get(f"https://{self._huawei_subdomain}.fusionsolar.huawei.com/rest/dpcloud/auth/v1/is-session-alive")
+        r = self._session.get(
+            f"https://{self._huawei_subdomain}.fusionsolar.huawei.com/rest/dpcloud/auth/v1/is-session-alive"
+        )
         r.raise_for_status()
 
         # get the response
@@ -479,7 +532,7 @@ class FusionSolarClient:
             return False
         else:
             return True
-        
+
     @logged_in
     def keep_alive(self) -> str:
         """This function replicates a call sent by the web-based application. Currently,
@@ -489,14 +542,16 @@ class FusionSolarClient:
         :return: This function returns the payload returned by the respective call
         :rtype: str
         """
-        r = self._session.get(f"https://{self._huawei_subdomain}.fusionsolar.huawei.com/rest/dpcloud/auth/v1/keep-alive")
+        r = self._session.get(
+            f"https://{self._huawei_subdomain}.fusionsolar.huawei.com/rest/dpcloud/auth/v1/keep-alive"
+        )
         r.raise_for_status()
 
         response_data = r.json()
 
         if "code" not in response_data or response_data["code"] != 0:
             raise FusionSolarException("Failed to set keep alive.")
-        
+
         # get the payload
         if "payload" in response_data:
             # save the payload as a session header
@@ -527,13 +582,13 @@ class FusionSolarClient:
         power_obj = r.json()
 
         power_status = PowerStatus(
-            current_power_kw=float( power_obj["data"]["currentPower"] ),
-            energy_today_kwh=float( power_obj["data"]["dailyEnergy"] ),
-            energy_kwh=float( power_obj["data"]["cumulativeEnergy"] ),
+            current_power_kw=float(power_obj["data"]["currentPower"]),
+            energy_today_kwh=float(power_obj["data"]["dailyEnergy"]),
+            energy_kwh=float(power_obj["data"]["cumulativeEnergy"]),
         )
 
         return power_status
-    
+
     @logged_in
     def get_current_plant_data(self, plant_id: str) -> dict:
         """Retrieve the current power status for a specific plant.
@@ -593,8 +648,8 @@ class FusionSolarClient:
                 "timeZone": 2,
                 "sortId": "createTime",
                 "sortDir": "DESC",
-                "locale": "en_US"
-            }
+                "locale": "en_US",
+            },
         )
         r.raise_for_status()
 
@@ -605,7 +660,6 @@ class FusionSolarClient:
 
         # simply return the original object list
         return obj_tree["data"]["list"]
-
 
     @logged_in
     def get_device_ids(self) -> list:
@@ -625,17 +679,23 @@ class FusionSolarClient:
         for device in device_data["data"]:
             devices += [dict(type=device["mocTypeName"], deviceDn=device["dn"])]
         return devices
-    @logged_in
-    def get_historical_data(self, signal_ids: list[str] = ['30014', '30016', '30017'], device_dn:str = None, date: datetime = datetime.now() ) -> dict:
-        """retrieves historical data for specified signals and device
-            possible signal_ids:
-            30017 : produced DC in kW
-            30016 : daily production in kWh
-            30014 : produced AC in kW
 
-            :return: historical data for requested signals and device
-            :rtype: dict
-            """
+    @logged_in
+    def get_historical_data(
+        self,
+        signal_ids: list[str] = ["30014", "30016", "30017"],
+        device_dn: str = None,
+        date: datetime = datetime.now(),
+    ) -> dict:
+        """retrieves historical data for specified signals and device
+        possible signal_ids:
+        30017 : produced DC in kW
+        30016 : daily production in kWh
+        30014 : produced AC in kW
+
+        :return: historical data for requested signals and device
+        :rtype: dict
+        """
 
         url = f"https://{self._huawei_subdomain}.fusionsolar.huawei.com/rest/pvms/web/device/v1/device-history-data"
         params = ()
@@ -656,10 +716,10 @@ class FusionSolarClient:
     def get_real_time_data(self, device_dn: str = None) -> dict:
         """retrieves real time data for requested device
 
-            :return: real time data for requested signals and device
-            :rtype: dict
+        :return: real time data for requested signals and device
+        :rtype: dict
 
-            """
+        """
 
         url = f"https://{self._huawei_subdomain}.fusionsolar.huawei.com/rest/pvms/web/device/v1/device-realtime-data"
         params = (
@@ -671,26 +731,26 @@ class FusionSolarClient:
 
         return r.json()
 
-
     @logged_in
     def get_alarm_data(self, device_dn: str = None) -> dict:
         """retrieves alarm data for device id
-            :return: alarm data for device id
-            :rtype: dict
-            https://uni004eu5.fusionsolar.huawei.com/rest/pvms/fm/v1/query
-            """
+        :return: alarm data for device id
+        :rtype: dict
+        https://uni004eu5.fusionsolar.huawei.com/rest/pvms/fm/v1/query
+        """
 
         url = f"https://{self._huawei_subdomain}.fusionsolar.huawei.com/rest/pvms/fm/v1/query"
-        request_data = {"dataType":"CURRENT",
-                        "domainType":"OC_SOLAR",
-                        "pageNo":1,
-                        "pageSize":10,
-                        "nativeMeDn":device_dn}
+        request_data = {
+            "dataType": "CURRENT",
+            "domainType": "OC_SOLAR",
+            "pageNo": 1,
+            "pageSize": 10,
+            "nativeMeDn": device_dn,
+        }
         r = self._session.post(url=url, json=request_data)
         r.raise_for_status()
 
         return r.json()
-
 
     @logged_in
     def get_battery_ids(self, plant_id) -> list:
@@ -699,14 +759,13 @@ class FusionSolarClient:
         :rtype: list
         """
         plant_flow = self.get_plant_flow(plant_id)
-        nodes = plant_flow['data']['flow']['nodes']
+        nodes = plant_flow["data"]["flow"]["nodes"]
         battery_ids = []
         for node in nodes:
             if "energy_store" in node["name"]:
                 battery_ids.append(node["devIds"][0])
 
         return battery_ids
-
 
     @logged_in
     def get_battery_basic_stats(self, battery_id: str) -> BatteryStatus:
@@ -753,7 +812,10 @@ class FusionSolarClient:
         r = self._session.get(
             url=f"https://{self._huawei_subdomain}.fusionsolar.huawei.com/rest/pvms/web/device/v1/device-history-data",
             params={
-                "signalIds": ["30005", "30007"], # 30005 is Charge/Discharge power, 30007 is SOC, state of charge in %
+                "signalIds": [
+                    "30005",
+                    "30007",
+                ],  # 30005 is Charge/Discharge power, 30007 is SOC, state of charge in %
                 "deviceDn": battery_id,
                 "date": current_time,
                 "_": current_time,
@@ -772,11 +834,10 @@ class FusionSolarClient:
 
         return battery_data["data"]
 
-
     @logged_in
     def get_battery_module_stats(
-        self, battery_id: str, module_id: str="1", signal_ids: list=None
-        ) -> dict:
+        self, battery_id: str, module_id: str = "1", signal_ids: list = None
+    ) -> dict:
         """Retrieves the complete stats for the given battery module
         of the latest recorded time. See signals.md for a list of signals.
         :param battery_id: The battery's id
@@ -790,8 +851,12 @@ class FusionSolarClient:
         if signal_ids is None:
             signal_ids = MODULE_SIGNALS[module_id]
         else:
-            if not all(signal_id in MODULE_SIGNALS[module_id] for signal_id in signal_ids):
-                raise ValueError(f"One or more unknown signal ids for module {module_id}")
+            if not all(
+                signal_id in MODULE_SIGNALS[module_id] for signal_id in signal_ids
+            ):
+                raise ValueError(
+                    f"One or more unknown signal ids for module {module_id}"
+                )
 
         signal_ids = ",".join(signal_ids)
 
@@ -814,7 +879,6 @@ class FusionSolarClient:
 
         return battery_data["data"]
 
-
     @logged_in
     def get_battery_status(self, battery_id: str) -> dict:
         """Retrieve the current battery status. This is the complete
@@ -829,7 +893,7 @@ class FusionSolarClient:
             params={
                 "deviceDn": battery_id,
                 "_": round(time.time() * 1000),
-            }
+            },
         )
 
         r.raise_for_status()
@@ -841,7 +905,6 @@ class FusionSolarClient:
             )
 
         return battery_data["data"][1]["signals"]
-
 
     @logged_in
     def active_power_control(self, power_setting) -> None:
@@ -859,7 +922,7 @@ class FusionSolarClient:
             raise ValueError("Unknown power setting")
 
         device_ids = self.get_device_ids()
-        dongle_id = list(filter(lambda e: e['type'] == 'Dongle', device_ids))[0]['id']
+        dongle_id = list(filter(lambda e: e["type"] == "Dongle", device_ids))[0]["id"]
 
         url = f"https://{self._huawei_subdomain}.fusionsolar.huawei.com/rest/pvms/web/device/v1/deviceExt/set-config-signals"
         data = {
@@ -894,9 +957,7 @@ class FusionSolarClient:
         return flow_data
 
     @logged_in
-    def get_plant_stats(
-        self, plant_id: str, query_time: int = None
-    ) -> dict:
+    def get_plant_stats(self, plant_id: str, query_time: int = None) -> dict:
         """Retrieves the complete plant usage statistics for the current day.
         :param plant_id: The plant's id
         :type plant_id: str
@@ -915,7 +976,7 @@ class FusionSolarClient:
             params={
                 "stationDn": plant_id,
                 "timeDim": 2,
-                "queryTime": query_time, # TODO: this may have changed to micro-seconds ie. timestamp * 1000
+                "queryTime": query_time,  # TODO: this may have changed to micro-seconds ie. timestamp * 1000
                 # dateTime=2024-03-07 00:00:00
                 "timeZone": 2,  # 1 in no daylight
                 "timeZoneStr": "Europe/Vienna",
@@ -952,13 +1013,20 @@ class FusionSolarClient:
         for key_name in plant_data.keys():
             try:
                 # fields to ignore
-                if key_name in ("xAxis", "stationTimezone", "clientTimezone", "stationDn"):
+                if key_name in (
+                    "xAxis",
+                    "stationTimezone",
+                    "clientTimezone",
+                    "stationDn",
+                ):
                     continue
 
                 key_value = plant_data[key_name]
 
                 if type(key_value) is list:
-                    extracted_data[key_name] = self._get_last_value(key_value, measurement_times)
+                    extracted_data[key_name] = self._get_last_value(
+                        key_value, measurement_times
+                    )
 
                 # Missing data
                 elif key_value == "--":
@@ -992,7 +1060,9 @@ class FusionSolarClient:
 
         for index, value in enumerate(values):
             if value != "--":
-                found_values.append({"time": measurement_times[index], "value": float(values[index])})
+                found_values.append(
+                    {"time": measurement_times[index], "value": float(values[index])}
+                )
 
         # if it's the last value
         if len(found_values) > 0:
@@ -1015,9 +1085,7 @@ class FusionSolarClient:
         return seconds
 
     @logged_in
-    def get_optimizer_stats(
-        self, inverter_id: str
-    ) -> dict:
+    def get_optimizer_stats(self, inverter_id: str) -> dict:
         """Retrieves the complete list of optimizers and returns real time stats.
 
         :param inverter_id: The inverter ID
@@ -1035,7 +1103,7 @@ class FusionSolarClient:
         optimizer_data = r.json()
 
         # check for an error - this seems to happen if no optimizer is present
-        if 'exceptionType' in optimizer_data:
+        if "exceptionType" in optimizer_data:
             raise FusionSolarException(
                 f"Failed to retrieve optimizer status for {inverter_id}"
             )

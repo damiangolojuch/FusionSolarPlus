@@ -5,6 +5,7 @@ from functools import partial
 
 DOMAIN = "fusionsolarplus"
 
+
 async def async_setup_entry(hass, entry):
     username = entry.data["username"]
     password = entry.data["password"]
@@ -16,7 +17,6 @@ async def async_setup_entry(hass, entry):
     if DOMAIN not in hass.data:
         hass.data[DOMAIN] = {}
     hass.data[DOMAIN][entry.entry_id] = client
-
 
     device_registry = async_get_device_registry(hass)
     device_registry.async_get_or_create(

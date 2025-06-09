@@ -6,16 +6,18 @@ try:
     from io import BytesIO
 except ImportError:
     print(
-        "Required libraries for CAPTCHA solving are not available. Please install the package using pip install fusion_solar_py[captcha].")
+        "Required libraries for CAPTCHA solving are not available. Please install the package using pip install fusion_solar_py[captcha]."
+    )
     raise FusionSolarException(
-        "Required libraries for CAPTCHA solving are not available. Please install the package using pip install fusion_solar_py[captcha].")
+        "Required libraries for CAPTCHA solving are not available. Please install the package using pip install fusion_solar_py[captcha]."
+    )
 
 from fusion_solar_py.interfaces import GenericSolver
 
 
 class Solver(GenericSolver):
     def _init_model(self):
-        self.hass = self.model_path     # Using modelpath to pass self.hass
+        self.hass = self.model_path  # Using modelpath to pass self.hass
         if not self.hass:
             raise FusionSolarException("hass instance not provided as model_path")
 
@@ -30,13 +32,10 @@ class Solver(GenericSolver):
 
     def solve_captcha(self, img_bytes):
         # Save image and get path
-        image_path = self.save_image_to_disk(img_bytes, 'captcha_input.png')
+        image_path = self.save_image_to_disk(img_bytes, "captcha_input.png")
 
         client = Client("docparser/Text_Captcha_breaker")
-        result = client.predict(
-            img_org=handle_file(image_path),
-            api_name="/predict"
-        )
+        result = client.predict(img_org=handle_file(image_path), api_name="/predict")
         return result
 
     def decode_batch_predictions(self):

@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
 
+
 class GenericSolver(ABC):
     def __init__(self, model_path, device=None):
-        """Instantiates a new captcha solver
-        """
+        """Instantiates a new captcha solver"""
         self.model_path = model_path
         self.device = device
         self._init_model()

@@ -1,4 +1,5 @@
-""" Collection of Exception classes used by the FusionSolar package"""
+"""Collection of Exception classes used by the FusionSolar package"""
+
 
 class FusionSolarException(Exception):
     """Base class for all exceptions.
@@ -6,6 +7,7 @@ class FusionSolarException(Exception):
     :param Exception: _description_
     :type Exception: _type_
     """
+
     pass
 
 
@@ -15,7 +17,9 @@ class AuthenticationException(FusionSolarException):
     :param FusionSolarException: _description_
     :type FusionSolarException: _type_
     """
+
     pass
+
 
 class CaptchaRequiredException(FusionSolarException):
     """A captcha is required for the login flow to proceed
@@ -23,4 +27,5 @@ class CaptchaRequiredException(FusionSolarException):
     :param FusionSolarException: _description_
     :type FusionSolarException: _type_
     """
+
     pass
