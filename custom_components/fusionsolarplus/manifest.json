@@ -1,16 +1,17 @@
 {
   "domain": "fusionsolarplus",
   "name": "FusionSolarPlus",
-  "version": "0.0.1",
-  "config_flow": true,
-  "documentation": "https://github.com/JortvanSchijndel/FusionSolarPlus",
-  "requirements": ["fusion-solar-py",
-                    "gradio_client",
-                    "Pillow",
-                    "beautifulsoup4"
-                  ],
-  "dependencies": [],
   "codeowners": ["@jortvanschijndel"],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/JortvanSchijndel/FusionSolarPlus",
   "iot_class": "cloud_polling",
-  "issue_tracker": "https://github.com/JortvanSchijndel/FusionSolarPlus/issues"
+  "issue_tracker": "https://github.com/JortvanSchijndel/FusionSolarPlus/issues",
+  "requirements": [
+    "fusion-solar-py",
+    "gradio_client",
+    "Pillow",
+    "beautifulsoup4"
+  ],
+  "version": "0.0.1"
 }

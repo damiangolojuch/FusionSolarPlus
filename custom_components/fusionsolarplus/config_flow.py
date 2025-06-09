@@ -4,6 +4,8 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResult
 from custom_components.fusionsolarplus.const import (
+    CONF_USERNAME,
+    CONF_PASSWORD,
     DOMAIN,
     CONF_DEVICE_TYPE,
     CONF_DEVICE_ID,
