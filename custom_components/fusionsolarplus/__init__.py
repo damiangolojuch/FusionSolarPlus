@@ -21,7 +21,7 @@ async def async_setup_entry(hass, entry):
     device_registry = async_get_device_registry(hass)
     device_registry.async_get_or_create(
         config_entry_id=entry.entry_id,
-        identifiers={(DOMAIN, entry.data["device_name"])},
+        identifiers={(DOMAIN, str(entry.data["device_id"]))},
         manufacturer="FusionSolar",
         name=entry.data["device_name"],
         model=entry.data["device_type"],

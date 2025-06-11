@@ -258,49 +258,109 @@ PLANT_SIGNALS = [
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
-    device_id = entry.data["device_id"]
-    device_name = entry.data["device_name"]
-    device_type = entry.data["device_type"]
+    device_type = entry.data.get("device_type")
+    device_id = entry.data.get("device_id")
+    device_name = entry.data.get("device_name")
 
     device_info = {
-        "identifiers": {(DOMAIN, device_name)},
-        "manufacturer": "FusionSolar",
+        "identifiers": {(DOMAIN, str(device_id))},
         "name": device_name,
-        "model": device_type,
+        "manufacturer": "FusionSolar",
+        "model": device_type or "Unknown",
+        "via_device": None,
     }
-    #
-    # API for Inverter
-    #
 
     async def async_get_data():
         client = hass.data[DOMAIN][entry.entry_id]
-        # Check if session is active -> false? re-log
-        if not await hass.async_add_executor_job(client.is_session_active):
-            _LOGGER.warning("Session inactive, re-logging in to FusionSolar API")
-            username = entry.data["username"]
-            password = entry.data["password"]
+        username = entry.data["username"]
+        password = entry.data["password"]
+
+        async def ensure_logged_in(client_instance):
+            try:
+                is_active = await hass.async_add_executor_job(
+                    client_instance.is_session_active
+                )
+                if not is_active:
+                    await hass.async_add_executor_job(client_instance._login)
+
+                    is_active = await hass.async_add_executor_job(
+                        client_instance.is_session_active
+                    )
+                    if not is_active:
+                        raise Exception("Login completed but session still not active")
+
+                return True
+            except Exception:
+                return False
+
+        async def create_new_client():
             new_client = await hass.async_add_executor_job(
                 partial(FusionSolarClient, username, password, captcha_model_path=hass)
             )
-            hass.data[DOMAIN][entry.entry_id] = new_client
-            client = new_client
-        try:
-            if device_type == "Inverter":
-                response = await hass.async_add_executor_job(
-                    client.get_real_time_data, device_id
-                )
-            elif device_type == "Plant":
-                response = await hass.async_add_executor_job(
-                    client.get_current_plant_data, device_id
-                )
-            else:
-                raise Exception("Unsupported device type")
-            return response
-        except Exception as err:
-            if "response" in locals():
-                _LOGGER.error("FusionSolar API raw response: %s", str(response))
-            _LOGGER.error("Error fetching FusionSolar %s data: %s", device_type, err)
-            raise UpdateFailed(f"Error fetching data: {err}")
+
+            if await hass.async_add_executor_job(new_client.is_session_active):
+                hass.data[DOMAIN][entry.entry_id] = new_client
+                return new_client
+            return None
+
+        if not await ensure_logged_in(client):
+            client = await create_new_client()
+
+        max_retries = 2
+
+        for attempt in range(max_retries + 1):
+            try:
+                if device_type == "Inverter":
+                    response = await hass.async_add_executor_job(
+                        client.get_real_time_data, device_id
+                    )
+                elif device_type == "Plant":
+                    response = await hass.async_add_executor_job(
+                        client.get_current_plant_data, device_id
+                    )
+                else:
+                    raise Exception("Unsupported device type")
+
+                if response is None:
+                    raise Exception("API returned None response")
+
+                return response
+
+            except Exception as err:
+                if attempt < max_retries:
+                    recovery_success = False
+
+                    try:
+                        await hass.async_add_executor_job(client._login)
+
+                        if await hass.async_add_executor_job(client.is_session_active):
+                            recovery_success = True
+                        return None
+
+                    except Exception:
+                        pass
+
+                    if not recovery_success:
+                        try:
+                            client = await create_new_client()
+                            recovery_success = True
+                        except Exception:
+                            pass
+
+                    if recovery_success:
+                        import asyncio
+
+                        await asyncio.sleep(2)
+                    else:
+                        import asyncio
+
+                        await asyncio.sleep(1)
+                else:
+                    raise UpdateFailed(
+                        f"Error fetching data after {max_retries + 1} attempts: {err}"
+                    )
+
+        raise UpdateFailed("Unexpected end of retry loop")
 
     coordinator = DataUpdateCoordinator(
         hass,
@@ -322,9 +382,12 @@ async def async_setup_entry(hass, entry, async_add_entities):
         entity_class = FusionSolarPlantSensor
     else:
         _LOGGER.error("Unknown device type: %s", device_type)
+        return
 
-    entities = [
-        entity_class(
+    # Create entities
+    entities = []
+    for signal in signals:
+        entity = entity_class(
             coordinator,
             signal[id_key],
             signal.get("custom_name", signal["name"]),
@@ -333,9 +396,12 @@ async def async_setup_entry(hass, entry, async_add_entities):
             signal.get("device_class"),
             signal.get("state_class"),
         )
-        for signal in signals
-    ]
+        entities.append(entity)
+        _LOGGER.error(
+            "Created entity: %s with unique_id: %s", entity.name, entity.unique_id
+        )
 
+    _LOGGER.error("Adding %d entities for device %s", len(entities), device_name)
     async_add_entities(entities)
 
 
