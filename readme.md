@@ -1,13 +1,30 @@
 
-
 ![Logo](https://raw.githubusercontent.com/JortvanSchijndel/FusionSolarPlus/refs/heads/master/branding/logo.png)
 
-<p align="center">
-<img alt="Total Downloads" src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fanalytics.home-assistant.io%2Fcustom_integrations.json&query=%24.fusionsolarplus.total&logo=homeassistantcommunitystore&logoColor=%235c5c5c&label=Total%20Downloads&labelColor=%23ffffff&color=%234983FF&cacheSeconds=600&link=https%3A%2F%2Fmy.home-assistant.io%2Fredirect%2Fhacs_repository%2F%3Fowner%3DJortvanSchijndel%26repository%3DFusionSolarPlus%26category%3DIntegration">
-<img alt="GitHub Release" src="https://img.shields.io/github/v/release/JortvanSchijndel/FusionSolarPlus?display_name=release&logo=V&logoColor=%235c5c5c&label=Latest%20Version&labelColor=%23ffffff&color=%234983FF&cacheSeconds=600&link=https%3A%2F%2Fgithub.com%2FJortvanSchijndel%2FFusionSolarPlus%2Freleases">
-<img alt="Lint Workflow" src="https://img.shields.io/github/actions/workflow/status/JortvanSchijndel/FusionSolarPlus/lint.yml?logo=testcafe&logoColor=%235c5c5c&label=Lint%20Workflow&labelColor=%23ffffff&color=%234983FF&cacheSeconds=600&link=https%3A%2F%2Fgithub.com%2FJortvanSchijndel%2FFusionSolarPlus%2Factions%2Fworkflows%2Flint.yml">
-<img alt="Hassfest & HACS Validation Workflow" src="https://img.shields.io/github/actions/workflow/status/JortvanSchijndel/FusionSolarPlus/validate.yml?logo=testcafe&logoColor=%235c5c5c&label=Hassfest%20%26%20HACS%20Validation%20Workflow&labelColor=%23ffffff&color=%234983FF&cacheSeconds=600&link=https%3A%2F%2Fgithub.com%2FJortvanSchijndel%2FFusionSolarPlus%2Factions%2Fworkflows%2Fvalidate.yml">
-</p>
+<table align="center" border="0">
+  <tr>
+    <td align="center">
+      <a href="https://my.home-assistant.io/redirect/hacs_repository/?owner=JortvanSchijndel&repository=FusionSolarPlus&category=Integration">
+        <img alt="Total Downloads" src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fanalytics.home-assistant.io%2Fcustom_integrations.json&query=%24.fusionsolarplus.total&logo=homeassistantcommunitystore&logoColor=%235c5c5c&label=Total%20Downloads&labelColor=%23ffffff&color=%234983FF&cacheSeconds=600">
+      </a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/JortvanSchijndel/FusionSolarPlus/releases">
+        <img alt="GitHub Release" src="https://img.shields.io/github/v/release/JortvanSchijndel/FusionSolarPlus?display_name=release&logo=V&logoColor=%235c5c5c&label=Latest%20Version&labelColor=%23ffffff&color=%234983FF&cacheSeconds=600">
+      </a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/JortvanSchijndel/FusionSolarPlus/actions/workflows/lint.yml">
+        <img alt="Lint Workflow" src="https://img.shields.io/github/actions/workflow/status/JortvanSchijndel/FusionSolarPlus/lint.yml?logo=testcafe&logoColor=%235c5c5c&label=Lint%20Workflow&labelColor=%23ffffff&color=%234983FF&cacheSeconds=600">
+      </a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/JortvanSchijndel/FusionSolarPlus/actions/workflows/validate.yml">
+        <img alt="Hassfest & HACS Validation Workflow" src="https://img.shields.io/github/actions/workflow/status/JortvanSchijndel/FusionSolarPlus/validate.yml?logo=testcafe&logoColor=%235c5c5c&label=Hassfest%20%26%20HACS%20Validation%20Workflow&labelColor=%23ffffff&color=%234983FF&cacheSeconds=600">
+      </a>
+    </td>
+  </tr>
+</table>
 
 ---
 
