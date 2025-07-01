@@ -6,6 +6,7 @@ from homeassistant.data_entry_flow import FlowResult
 from custom_components.fusionsolarplus.const import (
     CONF_USERNAME,
     CONF_PASSWORD,
+    CONF_SUBDOMAIN,
     DOMAIN,
     CONF_DEVICE_TYPE,
     CONF_DEVICE_ID,
@@ -31,6 +32,7 @@ class FusionSolarPlusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     def __init__(self):
         self.username = None
         self.password = None
+        self.subdomain = None
         self.device_type = None
         self.device_options = {}
         self.client = None
@@ -41,6 +43,7 @@ class FusionSolarPlusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input:
             self.username = user_input[CONF_USERNAME]
             self.password = user_input[CONF_PASSWORD]
+            self.subdomain = user_input[CONF_SUBDOMAIN]
 
             try:
                 self.client = await self.hass.async_add_executor_job(
@@ -49,6 +52,7 @@ class FusionSolarPlusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         self.username,
                         self.password,
                         captcha_model_path=self.hass,  # Using modelpath to pass self.hass
+                        huawei_subdomain=self.subdomain,
                     )
                 )
             except AuthenticationException as auth_exc:
@@ -73,6 +77,7 @@ class FusionSolarPlusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 {
                     vol.Required(CONF_USERNAME): str,
                     vol.Required(CONF_PASSWORD): str,
+                    vol.Required(CONF_SUBDOMAIN): str,
                 }
             ),
             errors=errors,
@@ -124,9 +129,6 @@ class FusionSolarPlusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     return self.async_abort(reason="no_devices")
 
                 self.device_options = device_options
-                _LOGGER.warning(
-                    "FusionSolarPlus: Device options set: %s", self.device_options
-                )
 
             except Exception as e:
                 _LOGGER.warning(
@@ -143,6 +145,7 @@ class FusionSolarPlusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 data={
                     CONF_USERNAME: self.username,
                     CONF_PASSWORD: self.password,
+                    CONF_SUBDOMAIN: self.subdomain,
                     CONF_DEVICE_TYPE: self.device_type,
                     CONF_DEVICE_ID: device_id,
                     CONF_DEVICE_NAME: device_name,

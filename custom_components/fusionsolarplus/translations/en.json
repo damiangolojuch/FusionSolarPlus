@@ -4,31 +4,23 @@
     "step": {
       "user": {
         "title": "Login to FusionSolar",
-        "description": "Enter your FusionSolar credentials.",
+        "description": "Please enter your FusionSolar credentials. \n\nFor a list of available subdomains click [here](https://support.huawei.com/enterprise/en/doc/EDOC1100165054/dbeb5df3/domain-name-list-of-management-systems) \n\neg. 'region01eu5' ",
         "data": {
           "username": "Username",
-          "password": "Password"
+          "password": "Password",
+          "subdomain": "Subdomain"
         }
       },
       "choose_type": {
         "title": "Device Type",
-        "description": "What would you like to set up?",
         "data": {
-          "device_type": "Device Type"
+          "device_type": "What would you like to set up?"
         }
       },
-      "select_inverter": {
-        "title": "Select Inverter",
-        "description": "Choose an inverter from your account.",
+      "select_device": {
+        "title": "Select Device",
         "data": {
-          "device_name": "Inverter"
-        }
-      },
-      "select_plant": {
-        "title": "Select Plant",
-        "description": "Choose an plant from your account.",
-        "data": {
-          "device_name": "Plant"
+          "device_name": "Please select an device from your account"
         }
       }
     },

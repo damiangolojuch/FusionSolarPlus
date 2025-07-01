@@ -274,6 +274,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
         client = hass.data[DOMAIN][entry.entry_id]
         username = entry.data["username"]
         password = entry.data["password"]
+        subdomain = entry.data.get("subdomain", "uni001eu5")
 
         async def ensure_logged_in(client_instance):
             try:
@@ -294,8 +295,9 @@ async def async_setup_entry(hass, entry, async_add_entities):
                 return False
 
         async def create_new_client():
+
             new_client = await hass.async_add_executor_job(
-                partial(FusionSolarClient, username, password, captcha_model_path=hass)
+                partial(FusionSolarClient, username, password, captcha_model_path=hass, huawei_subdomain=subdomain)
             )
 
             if await hass.async_add_executor_job(new_client.is_session_active):
