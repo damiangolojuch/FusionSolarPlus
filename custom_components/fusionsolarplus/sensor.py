@@ -295,9 +295,14 @@ async def async_setup_entry(hass, entry, async_add_entities):
                 return False
 
         async def create_new_client():
-
             new_client = await hass.async_add_executor_job(
-                partial(FusionSolarClient, username, password, captcha_model_path=hass, huawei_subdomain=subdomain)
+                partial(
+                    FusionSolarClient,
+                    username,
+                    password,
+                    captcha_model_path=hass,
+                    huawei_subdomain=subdomain,
+                )
             )
 
             if await hass.async_add_executor_job(new_client.is_session_active):
