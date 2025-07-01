@@ -12,7 +12,13 @@ async def async_setup_entry(hass, entry):
     subdomain = entry.data.get("subdomain", "uni001eu5")
 
     client = await hass.async_add_executor_job(
-        partial(FusionSolarClient, username, password, captcha_model_path=hass, huawei_subdomain=subdomain)
+        partial(
+            FusionSolarClient,
+            username,
+            password,
+            captcha_model_path=hass,
+            huawei_subdomain=subdomain,
+        )
     )
 
     if DOMAIN not in hass.data:
