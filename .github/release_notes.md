@@ -3,7 +3,7 @@
 ## :fire: New Features
 - **XXX:** xxx
 
-## :tools: Fixes & Improvements
+## :hammer_and_wrench: Fixes & Improvements
 ### Fixes:
 - XXX.
 
