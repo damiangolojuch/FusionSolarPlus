@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "title": "Login to FusionSolar",
-        "description": "Please enter your FusionSolar credentials. \n\nFor a list of available subdomains click [here](https://support.huawei.com/enterprise/en/doc/EDOC1100165054/dbeb5df3/domain-name-list-of-management-systems) \n\neg. 'region01eu5' ",
+        "description": "Please enter your FusionSolar credentials.\n\nFor a list of available subdomains click [here](https://support.huawei.com/enterprise/en/doc/EDOC1100165054/dbeb5df3/domain-name-list-of-management-systems)\n\neg. 'region01eu5'",
         "data": {
           "username": "Username",
           "password": "Password",
