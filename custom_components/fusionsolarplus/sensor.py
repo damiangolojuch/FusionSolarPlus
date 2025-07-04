@@ -2111,8 +2111,6 @@ async def async_setup_entry(hass, entry, async_add_entities):
             entities.append(entity)
             unique_ids.add(unique_id)
 
-    import re
-
     modules_data = coordinator.data.get("modules", {})
     for module_id, module_signals in MODULE_SIGNAL_MAP.items():
         module_signals_data = modules_data.get(module_id)
