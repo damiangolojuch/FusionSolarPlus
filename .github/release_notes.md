@@ -1,3 +1,11 @@
+<!--
+Checklist
+[] Disabled Fake battery
+[] Formatted using Ruff
+[] Changed version number
+-->
+
+
 # :rocket: FusionSolarPlus vx.x.x Release Notes
 
 ## :fire: New Features

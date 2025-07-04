@@ -6,6 +6,7 @@ from datetime import datetime
 from decimal import Decimal
 from functools import wraps
 import json
+import os
 from typing import Any, Optional
 
 import requests
@@ -18,6 +19,7 @@ from .exceptions import (
 from .constants import MODULE_SIGNALS
 from .encryption import encrypt_password, get_secure_random
 
+ENABLE_FAKE_BATTERY = False  # True/False » Will give predefined API responses. Useful if you don't have a battery
 
 # global logger object
 _LOGGER = logging.getLogger(__name__)
@@ -761,9 +763,23 @@ class FusionSolarClient:
         plant_flow = self.get_plant_flow(plant_id)
         nodes = plant_flow["data"]["flow"]["nodes"]
         battery_ids = []
+
+        # for node in nodes:
+        #     if "energy_store" in node["name"]:
+        #         battery_ids.append(node["devIds"][0])
+
         for node in nodes:
-            if "energy_store" in node["name"]:
-                battery_ids.append(node["devIds"][0])
+            name = node.get("name", "")
+            dev_ids = node.get("devIds")
+            logging.debug("Processing node: name=%r devIds=%r", name, dev_ids)
+            if "energy_store" in name:
+                if isinstance(dev_ids, list) and dev_ids:
+                    battery_ids.append(dev_ids[0])
+                else:
+                    logging.warning(
+                        "Node with 'energy_store' in name but devIds is not a non-empty list: %r",
+                        node,
+                    )
 
         return battery_ids
 
@@ -848,36 +864,57 @@ class FusionSolarClient:
         :type signal_ids: list
         :return: The complete data structure as a dict
         """
-        if signal_ids is None:
-            signal_ids = MODULE_SIGNALS[module_id]
+
+        if ENABLE_FAKE_BATTERY:
+            if module_id == "1":
+                base_dir = os.path.dirname(os.path.abspath(__file__))
+                json_path = os.path.join(base_dir, "battery_module_1.json")
+                with open(json_path) as f:
+                    battery_module = json.load(f)
+                return battery_module["data"]
+            elif module_id == "2":
+                base_dir = os.path.dirname(os.path.abspath(__file__))
+                json_path = os.path.join(base_dir, "battery_module_2.json")
+                with open(json_path) as f:
+                    battery_module = json.load(f)
+                return battery_module["data"]
+            else:
+                base_dir = os.path.dirname(os.path.abspath(__file__))
+                json_path = os.path.join(base_dir, "battery_module_empty.json")
+                with open(json_path) as f:
+                    battery_module = json.load(f)
+                return battery_module["data"]
         else:
-            if not all(
-                signal_id in MODULE_SIGNALS[module_id] for signal_id in signal_ids
-            ):
-                raise ValueError(
-                    f"One or more unknown signal ids for module {module_id}"
+            if signal_ids is None:
+                signal_ids = MODULE_SIGNALS[module_id]
+            else:
+                if not all(
+                    signal_id in MODULE_SIGNALS[module_id] for signal_id in signal_ids
+                ):
+                    raise ValueError(
+                        f"One or more unknown signal ids for module {module_id}"
+                    )
+
+            signal_ids = ",".join(signal_ids)
+
+            r = self._session.get(
+                url=f"https://{self._huawei_subdomain}.fusionsolar.huawei.com/rest/pvms/web/device/v1/query-battery-dc",
+                params={
+                    "sigids": signal_ids,
+                    "dn": battery_id,
+                    "moduleId": module_id,
+                    "_": round(time.time() * 1000),
+                },
+            )
+            r.raise_for_status()
+            battery_data = r.json()
+
+            if not battery_data["success"] or "data" not in battery_data:
+                raise FusionSolarException(
+                    f"Failed to retrieve battery status for {battery_id}"
                 )
 
-        signal_ids = ",".join(signal_ids)
-
-        r = self._session.get(
-            url=f"https://{self._huawei_subdomain}.fusionsolar.huawei.com/rest/pvms/web/device/v1/query-battery-dc",
-            params={
-                "sigids": signal_ids,
-                "dn": battery_id,
-                "moduleId": module_id,
-                "_": round(time.time() * 1000),
-            },
-        )
-        r.raise_for_status()
-        battery_data = r.json()
-
-        if not battery_data["success"] or "data" not in battery_data:
-            raise FusionSolarException(
-                f"Failed to retrieve battery status for {battery_id}"
-            )
-
-        return battery_data["data"]
+            return battery_data["data"]
 
     @logged_in
     def get_battery_status(self, battery_id: str) -> dict:
@@ -887,24 +924,30 @@ class FusionSolarClient:
         :type battery_id: str
         :return: The current status as a dict
         """
-
-        r = self._session.get(
-            url=f"https://{self._huawei_subdomain}.fusionsolar.huawei.com/rest/pvms/web/device/v1/device-realtime-data",
-            params={
-                "deviceDn": battery_id,
-                "_": round(time.time() * 1000),
-            },
-        )
-
-        r.raise_for_status()
-        battery_data = r.json()
-
-        if not battery_data["success"] or "data" not in battery_data:
-            raise FusionSolarException(
-                f"Failed to retrieve battery status for {battery_id}"
+        if ENABLE_FAKE_BATTERY:
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            json_path = os.path.join(base_dir, "battery_status.json")
+            with open(json_path) as f:
+                battery_status = json.load(f)
+            return battery_status["data"][1]["signals"]
+        else:
+            r = self._session.get(
+                url=f"https://{self._huawei_subdomain}.fusionsolar.huawei.com/rest/pvms/web/device/v1/device-realtime-data",
+                params={
+                    "deviceDn": battery_id,
+                    "_": round(time.time() * 1000),
+                },
             )
 
-        return battery_data["data"][1]["signals"]
+            r.raise_for_status()
+            battery_data = r.json()
+
+            if not battery_data["success"] or "data" not in battery_data:
+                raise FusionSolarException(
+                    f"Failed to retrieve battery status for {battery_id}"
+                )
+
+            return battery_data["data"][1]["signals"]
 
     @logged_in
     def active_power_control(self, power_setting) -> None:
@@ -942,19 +985,29 @@ class FusionSolarClient:
         :type plant_id: str
         :return: The complete data structure as a dict
         """
-        # https://region01eu5.fusionsolar.huawei.com/rest/pvms/web/station/v1/overview/energy-flow?stationDn=NE%3D33594051&_=1652469979488
-        r = self._session.get(
-            url=f"https://{self._huawei_subdomain}.fusionsolar.huawei.com/rest/pvms/web/station/v1/overview/energy-flow",
-            params={"stationDn": plant_id, "_": round(time.time() * 1000)},
-        )
 
-        r.raise_for_status()
-        flow_data = r.json()
+        if ENABLE_FAKE_BATTERY:
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            json_path = os.path.join(base_dir, "flow.json")
+            with open(json_path) as f:
+                plantflow = json.load(f)
+            return plantflow
+        else:
+            # https://region01eu5.fusionsolar.huawei.com/rest/pvms/web/station/v1/overview/energy-flow?stationDn=NE%3D33594051&_=1652469979488
+            r = self._session.get(
+                url=f"https://{self._huawei_subdomain}.fusionsolar.huawei.com/rest/pvms/web/station/v1/overview/energy-flow",
+                params={"stationDn": plant_id, "_": round(time.time() * 1000)},
+            )
 
-        if not flow_data["success"] or "data" not in flow_data:
-            raise FusionSolarException(f"Failed to retrieve plant flow for {plant_id}")
+            r.raise_for_status()
+            flow_data = r.json()
 
-        return flow_data
+            if not flow_data["success"] or "data" not in flow_data:
+                raise FusionSolarException(
+                    f"Failed to retrieve plant flow for {plant_id}"
+                )
+
+            return flow_data
 
     @logged_in
     def get_plant_stats(self, plant_id: str, query_time: int = None) -> dict:

@@ -19,10 +19,12 @@ _LOGGER = logging.getLogger(__name__)
 
 DEVICE_TYPE_PLANT = "Plant"
 DEVICE_TYPE_INVERTER = "Inverter"
+DEVICE_TYPE_BATTERY = "Battery"
 
 DEVICE_TYPE_OPTIONS = {
     "Plant": DEVICE_TYPE_PLANT,
     "Inverter": DEVICE_TYPE_INVERTER,
+    "Battery": DEVICE_TYPE_BATTERY,
 }
 
 
@@ -120,6 +122,19 @@ class FusionSolarPlusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         if device["type"] == "Inverter":
                             device_dn = device["deviceDn"]
                             device_options[f"Inverter (ID: {device_dn})"] = device_dn
+
+                # Handle battery ids
+                elif self.device_type == DEVICE_TYPE_BATTERY:
+                    plant_ids = await self.hass.async_add_executor_job(
+                        self.client.get_plant_ids
+                    )
+                    for plant_id in plant_ids:
+                        battery_ids = await self.hass.async_add_executor_job(
+                            self.client.get_battery_ids, plant_id
+                        )
+
+                        for battery_id in battery_ids:
+                            device_options[f"Battery (ID: {battery_id})"] = battery_id
 
                 if not device_options:
                     _LOGGER.warning(

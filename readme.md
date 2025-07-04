@@ -45,9 +45,6 @@ Once installed:
 5. Select the device type you want to add, then choose the specific device.
 
 # Entities
-> [!NOTE] 
-> Currently, this integration only supports plants and inverters, as those are the devices I have access to.
-> If you're missing support for a device (e.g., a battery), feel free to [open an issue](https://github.com/JortvanSchijndel/FusionSolarPlus/issues). I'll do my best to add compatibility even without direct access to the hardware.
 
 ## Plant
 |Entity         |Unit       |
@@ -81,6 +78,74 @@ Once installed:
 | Status                 | Text     |
 | Temperature            | °C       |
 | Total Energy Produced  | kWh      |
+
+## Battery
+| Entity                                        | Unit     |
+|-----------------------------------------------|:--------:|
+| Operating Status                             | Text     |
+| Charge/Discharge Mode                        | Text     |
+| Rated Capacity                               | kWh      |
+| Backup Time                                  | min      |
+| Energy Charged Today                         | kWh      |
+| Energy Discharged Today                      | kWh      |
+| Charge/Discharge Power                       | kW       |
+| Bus Voltage                                  | V        |
+| State of Charge                              | %        |
+| [Module X] No.                                          | Text     |
+| [Module X] Working Status                               | Text     |
+| [Module X] SN                                           | Text     |
+| [Module X] Software Version                             | Text     |
+| [Module X] SOC                                          | %        |
+| [Module X] Charge and Discharge Power                   | kW       |
+| [Module X] Internal Temperature                         | °C       |
+| [Module X] Daily Charge Energy                          | kWh      |
+| [Module X] Daily Discharge Energy                       | kWh      |
+| [Module X] Total Discharge Energy                       | kWh      |
+| [Module X] Bus Voltage                                  | V        |
+| [Module X] Bus Current                                  | A        |
+| [Module X] FE Connection                                | Text     |
+| [Module X] Total Charge Energy                          | kWh      |
+| [Module X] Battery Pack 1 No.                          | Text     |
+| [Module X] Battery Pack 2 No.                          | Text     |
+| [Module X] Battery Pack 3 No.                          | Text     |
+| [Module X] Battery Pack 1 Firmware Version             | Text     |
+| [Module X] Battery Pack 2 Firmware Version             | Text     |
+| [Module X] Battery Pack 3 Firmware Version             | Text     |
+| [Module X] Battery Pack 1 SN                           | Text     |
+| [Module X] Battery Pack 2 SN                           | Text     |
+| [Module X] Battery Pack 3 SN                           | Text     |
+| [Module X] Battery Pack 1 Operating Status             | Text     |
+| [Module X] Battery Pack 2 Operating Status             | Text     |
+| [Module X] Battery Pack 3 Operating Status             | Text     |
+| [Module X] Battery Pack 1 Voltage                      | V        |
+| [Module X] Battery Pack 2 Voltage                      | V        |
+| [Module X] Battery Pack 3 Voltage                      | V        |
+| [Module X] Battery Pack 1 Charge/Discharge Power       | kW       |
+| [Module X] Battery Pack 2 Charge/Discharge Power       | kW       |
+| [Module X] Battery Pack 3 Charge/Discharge Power       | kW       |
+| [Module X] Battery Pack 1 Maximum Temperature          | °C       |
+| [Module X] Battery Pack 2 Maximum Temperature          | °C       |
+| [Module X] Battery Pack 3 Maximum Temperature          | °C       |
+| [Module X] Battery Pack 1 Minimum Temperature          | °C       |
+| [Module X] Battery Pack 2 Minimum Temperature          | °C       |
+| [Module X] Battery Pack 3 Minimum Temperature          | °C       |
+| [Module X] Battery Pack 1 SOC                          | %        |
+| [Module X] Battery Pack 2 SOC                          | %        |
+| [Module X] Battery Pack 3 SOC                          | %        |
+| [Module X] Battery Pack 1 Total Discharge Energy       | kWh      |
+| [Module X] Battery Pack 2 Total Discharge Energy       | kWh      |
+| [Module X] Battery Pack 3 Total Discharge Energy       | kWh      |
+| [Module X] Battery Pack 1 Battery Health Check         | Text     |
+| [Module X] Battery Pack 2 Battery Health Check         | Text     |
+| [Module X] Battery Pack 3 Battery Health Check         | Text     |
+| [Module X] Battery Pack 1 Heating Status               | Text     |
+| [Module X] Battery Pack 2 Heating Status               | Text     |
+| [Module X] Battery Pack 3 Heating Status               | Text     |
+*X ranges from 1 - 4 depending on how many modules your battery has.
+> [!NOTE] 
+> Currently, this integration only supports battery modules 1 and 2.
+> If your battery has 3 or 4 modules, please [open an issue](https://github.com/JortvanSchijndel/FusionSolarPlus/issues).
+
 
 # Issues
 If you encounter any problems while using the integration, please [open an issue](https://github.com/JortvanSchijndel/FusionSolarPlus/issues).

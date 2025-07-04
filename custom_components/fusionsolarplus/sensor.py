@@ -1,4 +1,7 @@
 import logging
+import re
+import asyncio
+from . import DOMAIN
 from functools import partial
 from datetime import timedelta
 from .api.fusion_solar_py.client import FusionSolarClient
@@ -13,8 +16,6 @@ from homeassistant.helpers.update_coordinator import (
     UpdateFailed,
     CoordinatorEntity,
 )
-
-from . import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -71,12 +72,10 @@ CURRENCY_MAP = {
     50: "UZS",
 }
 
-
-# Device & state classes: https://developers.home-assistant.io/docs/core/entity/sensor/
-
 #
 # Define Signals from the API (entities)
 #
+# Device & state classes: https://developers.home-assistant.io/docs/core/entity/sensor/
 INVERTER_SIGNALS = [
     {"id": 10025, "name": "Inverter status", "unit": "", "custom_name": "Status"},
     {"id": 10020, "name": "Power factor", "unit": "", "custom_name": "Power Factor"},
@@ -256,6 +255,1696 @@ PLANT_SIGNALS = [
     },
 ]
 
+BATTERY_STATUS_SIGNALS = [
+    {
+        "id": 10003,
+        "name": "Battery operating status",
+        "unit": "",
+        "custom_name": "Operating Status",
+    },
+    {
+        "id": 10008,
+        "name": "Charge/Discharge mode",
+        "unit": "",
+        "custom_name": "Charge/Discharge Mode",
+    },
+    {
+        "id": 10013,
+        "name": "Rated capacity",
+        "unit": "kWh",
+        "custom_name": "Rated Capacity",
+        "device_class": SensorDeviceClass.ENERGY,
+        "state_class": SensorStateClass.MEASUREMENT,
+    },
+    {
+        "id": 10015,
+        "name": "Backup time",
+        "unit": "min",
+        "custom_name": "Backup Time",
+        "device_class": SensorDeviceClass.DURATION,
+        "state_class": SensorStateClass.MEASUREMENT,
+    },
+    {
+        "id": 10001,
+        "name": "Energy charged today",
+        "unit": "kWh",
+        "custom_name": "Energy Charged Today",
+        "device_class": SensorDeviceClass.ENERGY,
+        "state_class": SensorStateClass.TOTAL,
+    },
+    {
+        "id": 10002,
+        "name": "Energy discharged today",
+        "unit": "kWh",
+        "custom_name": "Energy Discharged Today",
+        "device_class": SensorDeviceClass.ENERGY,
+        "state_class": SensorStateClass.TOTAL,
+    },
+    {
+        "id": 10004,
+        "name": "Charge/Discharge power",
+        "unit": "kW",
+        "custom_name": "Charge/Discharge Power",
+        "device_class": SensorDeviceClass.POWER,
+        "state_class": SensorStateClass.MEASUREMENT,
+    },
+    {
+        "id": 10005,
+        "name": "Bus voltage",
+        "unit": "V",
+        "custom_name": "Bus Voltage",
+        "device_class": SensorDeviceClass.VOLTAGE,
+        "state_class": SensorStateClass.MEASUREMENT,
+    },
+    {
+        "id": 10006,
+        "name": "SOC",
+        "unit": "%",
+        "custom_name": "State of Charge",
+        "device_class": SensorDeviceClass.BATTERY,
+        "state_class": SensorStateClass.MEASUREMENT,
+    },
+]
+
+BATTERY_MODULE_SIGNALS_1 = [
+    {
+        "id": 230320252,
+        "name": "[Module 1] No.",
+        "unit": "",
+        "custom_name": "[Module 1] No.",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320459,
+        "name": "[Module 1] Working Status",
+        "unit": "",
+        "custom_name": "[Module 1] Working Status",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320275,
+        "name": "[Module 1] SN",
+        "unit": "",
+        "custom_name": "[Module 1] SN",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320146,
+        "name": "[Module 1] Software Version",
+        "unit": "",
+        "custom_name": "[Module 1] Software Version",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320463,
+        "name": "[Module 1] SOC",
+        "unit": "%",
+        "custom_name": "[Module 1] SOC",
+        "device_class": "battery",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320473,
+        "name": "[Module 1] Charge and Discharge Power",
+        "unit": "kW",
+        "custom_name": "[Module 1] Charge and Discharge Power",
+        "device_class": "power",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320462,
+        "name": "[Module 1] Internal Temperature",
+        "unit": "°C",
+        "custom_name": "[Module 1] Internal Temperature",
+        "device_class": "temperature",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320469,
+        "name": "[Module 1] Daily Charge Energy",
+        "unit": "kWh",
+        "custom_name": "[Module 1] Daily Charge Energy",
+        "device_class": "energy",
+        "state_class": "total_increasing",
+    },
+    {
+        "id": 230320470,
+        "name": "[Module 1] Daily Discharge Energy",
+        "unit": "kWh",
+        "custom_name": "[Module 1] Daily Discharge Energy",
+        "device_class": "energy",
+        "state_class": "total_increasing",
+    },
+    {
+        "id": 230320108,
+        "name": "[Module 1] Total Discharge Energy",
+        "unit": "kWh",
+        "custom_name": "[Module 1] Total Discharge Energy",
+        "device_class": "energy",
+        "state_class": "total_increasing",
+    },
+    {
+        "id": 230320460,
+        "name": "[Module 1] Bus Voltage",
+        "unit": "V",
+        "custom_name": "[Module 1] Bus Voltage",
+        "device_class": "voltage",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320461,
+        "name": "[Module 1] Bus Current",
+        "unit": "A",
+        "custom_name": "[Module 1] Bus Current",
+        "device_class": "current",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320514,
+        "name": "[Module 1] FE Connection",
+        "unit": "",
+        "custom_name": "[Module 1] FE Connection",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320107,
+        "name": "[Module 1] Total Charge Energy",
+        "unit": "kWh",
+        "custom_name": "[Module 1] Total Charge Energy",
+        "device_class": "energy",
+        "state_class": "total_increasing",
+    },
+    {
+        "id": 230320265,
+        "name": "[Module 1] Battery Pack 1 No.",
+        "unit": "",
+        "custom_name": "[Module 1] Battery Pack 1 No.",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320266,
+        "name": "[Module 1] Battery Pack 2 No.",
+        "unit": "",
+        "custom_name": "[Module 1] Battery Pack 2 No.",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320267,
+        "name": "[Module 1] Battery Pack 3 No.",
+        "unit": "",
+        "custom_name": "[Module 1] Battery Pack 3 No.",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320148,
+        "name": "[Module 1] Battery Pack 1 Firmware Version",
+        "unit": "",
+        "custom_name": "[Module 1] Battery Pack 1 Firmware Version",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320165,
+        "name": "[Module 1] Battery Pack 2 Firmware Version",
+        "unit": "",
+        "custom_name": "[Module 1] Battery Pack 2 Firmware Version",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320181,
+        "name": "[Module 1] Battery Pack 3 Firmware Version",
+        "unit": "",
+        "custom_name": "[Module 1] Battery Pack 3 Firmware Version",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320147,
+        "name": "[Module 1] Battery Pack 1 SN",
+        "unit": "",
+        "custom_name": "[Module 1] Battery Pack 1 SN",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320164,
+        "name": "[Module 1] Battery Pack 2 SN",
+        "unit": "",
+        "custom_name": "[Module 1] Battery Pack 2 SN",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320180,
+        "name": "[Module 1] Battery Pack 3 SN",
+        "unit": "",
+        "custom_name": "[Module 1] Battery Pack 3 SN",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320151,
+        "name": "[Module 1] Battery Pack 1 Operating Status",
+        "unit": "",
+        "custom_name": "[Module 1] Battery Pack 1 Operating Status",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320168,
+        "name": "[Module 1] Battery Pack 2 Operating Status",
+        "unit": "",
+        "custom_name": "[Module 1] Battery Pack 2 Operating Status",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320184,
+        "name": "[Module 1] Battery Pack 3 Operating Status",
+        "unit": "",
+        "custom_name": "[Module 1] Battery Pack 3 Operating Status",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320159,
+        "name": "[Module 1] Battery Pack 1 Voltage",
+        "unit": "V",
+        "custom_name": "[Module 1] Battery Pack 1 Voltage",
+        "device_class": "voltage",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320174,
+        "name": "[Module 1] Battery Pack 2 Voltage",
+        "unit": "V",
+        "custom_name": "[Module 1] Battery Pack 2 Voltage",
+        "device_class": "voltage",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320190,
+        "name": "[Module 1] Battery Pack 3 Voltage",
+        "unit": "V",
+        "custom_name": "[Module 1] Battery Pack 3 Voltage",
+        "device_class": "voltage",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320158,
+        "name": "[Module 1] Battery Pack 1 Charge/Discharge Power",
+        "unit": "kW",
+        "custom_name": "[Module 1] Battery Pack 1 Charge/Discharge Power",
+        "device_class": "power",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320173,
+        "name": "[Module 1] Battery Pack 2 Charge/Discharge Power",
+        "unit": "kW",
+        "custom_name": "[Module 1] Battery Pack 2 Charge/Discharge Power",
+        "device_class": "power",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320189,
+        "name": "[Module 1] Battery Pack 3 Charge/Discharge Power",
+        "unit": "kW",
+        "custom_name": "[Module 1] Battery Pack 3 Charge/Discharge Power",
+        "device_class": "power",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320446,
+        "name": "[Module 1] Battery Pack 1 Maximum Temperature",
+        "unit": "°C",
+        "custom_name": "[Module 1] Battery Pack 1 Maximum Temperature",
+        "device_class": "temperature",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320448,
+        "name": "[Module 1] Battery Pack 2 Maximum Temperature",
+        "unit": "°C",
+        "custom_name": "[Module 1] Battery Pack 2 Maximum Temperature",
+        "device_class": "temperature",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320450,
+        "name": "[Module 1] Battery Pack 3 Maximum Temperature",
+        "unit": "°C",
+        "custom_name": "[Module 1] Battery Pack 3 Maximum Temperature",
+        "device_class": "temperature",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320447,
+        "name": "[Module 1] Battery Pack 1 Minimum Temperature",
+        "unit": "°C",
+        "custom_name": "[Module 1] Battery Pack 1 Minimum Temperature",
+        "device_class": "temperature",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320449,
+        "name": "[Module 1] Battery Pack 2 Minimum Temperature",
+        "unit": "°C",
+        "custom_name": "[Module 1] Battery Pack 2 Minimum Temperature",
+        "device_class": "temperature",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320451,
+        "name": "[Module 1] Battery Pack 3 Minimum Temperature",
+        "unit": "°C",
+        "custom_name": "[Module 1] Battery Pack 3 Minimum Temperature",
+        "device_class": "temperature",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320152,
+        "name": "[Module 1] Battery Pack 1 SOC",
+        "unit": "%",
+        "custom_name": "[Module 1] Battery Pack 1 SOC",
+        "device_class": "battery",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320169,
+        "name": "[Module 1] Battery Pack 2 SOC",
+        "unit": "%",
+        "custom_name": "[Module 1] Battery Pack 2 SOC",
+        "device_class": "battery",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320185,
+        "name": "[Module 1] Battery Pack 3 SOC",
+        "unit": "%",
+        "custom_name": "[Module 1] Battery Pack 3 SOC",
+        "device_class": "battery",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320163,
+        "name": "[Module 1] Battery Pack 1 Total Discharge Energy",
+        "unit": "kWh",
+        "custom_name": "[Module 1] Battery Pack 1 Total Discharge Energy",
+        "device_class": "energy",
+        "state_class": "total_increasing",
+    },
+    {
+        "id": 230320179,
+        "name": "[Module 1] Battery Pack 2 Total Discharge Energy",
+        "unit": "kWh",
+        "custom_name": "[Module 1] Battery Pack 2 Total Discharge Energy",
+        "device_class": "energy",
+        "state_class": "total_increasing",
+    },
+    {
+        "id": 230320194,
+        "name": "[Module 1] Battery Pack 3 Total Discharge Energy",
+        "unit": "kWh",
+        "custom_name": "[Module 1] Battery Pack 3 Total Discharge Energy",
+        "device_class": "energy",
+        "state_class": "total_increasing",
+    },
+    {
+        "id": 230320492,
+        "name": "[Module 1] Battery Pack 1 Battery Health Check",
+        "unit": "",
+        "custom_name": "[Module 1] Battery Pack 1 Battery Health Check",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320493,
+        "name": "[Module 1] Battery Pack 2 Battery Health Check",
+        "unit": "",
+        "custom_name": "[Module 1] Battery Pack 2 Battery Health Check",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320494,
+        "name": "[Module 1] Battery Pack 3 Battery Health Check",
+        "unit": "",
+        "custom_name": "[Module 1] Battery Pack 3 Battery Health Check",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320498,
+        "name": "[Module 1] Battery Pack 1 Heating Status",
+        "unit": "",
+        "custom_name": "[Module 1] Battery Pack 1 Heating Status",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320499,
+        "name": "[Module 1] Battery Pack 2 Heating Status",
+        "unit": "",
+        "custom_name": "[Module 1] Battery Pack 2 Heating Status",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320500,
+        "name": "[Module 1] Battery Pack 3 Heating Status",
+        "unit": "",
+        "custom_name": "[Module 1] Battery Pack 3 Heating Status",
+        "device_class": None,
+        "state_class": None,
+    },
+]
+
+BATTERY_MODULE_SIGNALS_2 = [
+    {
+        "id": 230320253,
+        "name": "[Module 2] No.",
+        "unit": "",
+        "custom_name": "[Module 2] No.",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320464,
+        "name": "[Module 2] Working Status",
+        "unit": "",
+        "custom_name": "[Module 2] Working Status",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320276,
+        "name": "[Module 2] SN",
+        "unit": "",
+        "custom_name": "[Module 2] SN",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320145,
+        "name": "[Module 2] Software Version",
+        "unit": "",
+        "custom_name": "[Module 2] Software Version",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320468,
+        "name": "[Module 2] SOC",
+        "unit": "%",
+        "custom_name": "[Module 2] SOC",
+        "device_class": "battery",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320474,
+        "name": "[Module 2] Charge and Discharge Power",
+        "unit": "kW",
+        "custom_name": "[Module 2] Charge and Discharge Power",
+        "device_class": "power",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320467,
+        "name": "[Module 2] Internal Temperature",
+        "unit": "°C",
+        "custom_name": "[Module 2] Internal Temperature",
+        "device_class": "temperature",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320471,
+        "name": "[Module 2] Daily Charge Energy",
+        "unit": "kWh",
+        "custom_name": "[Module 2] Daily Charge Energy",
+        "device_class": "energy",
+        "state_class": "total_increasing",
+    },
+    {
+        "id": 230320472,
+        "name": "[Module 2] Daily Discharge Energy",
+        "unit": "kWh",
+        "custom_name": "[Module 2] Daily Discharge Energy",
+        "device_class": "energy",
+        "state_class": "total_increasing",
+    },
+    {
+        "id": 230320115,
+        "name": "[Module 2] Total Discharge Energy",
+        "unit": "kWh",
+        "custom_name": "[Module 2] Total Discharge Energy",
+        "device_class": "energy",
+        "state_class": "total_increasing",
+    },
+    {
+        "id": 230320465,
+        "name": "[Module 2] Bus Voltage",
+        "unit": "V",
+        "custom_name": "[Module 2] Bus Voltage",
+        "device_class": "voltage",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320466,
+        "name": "[Module 2] Bus Current",
+        "unit": "A",
+        "custom_name": "[Module 2] Bus Current",
+        "device_class": "current",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320515,
+        "name": "[Module 2] FE Connection",
+        "unit": "",
+        "custom_name": "[Module 2] FE Connection",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320114,
+        "name": "[Module 2] Total Charge Energy",
+        "unit": "kWh",
+        "custom_name": "[Module 2] Total Charge Energy",
+        "device_class": "energy",
+        "state_class": "total_increasing",
+    },
+    {
+        "id": 230320268,
+        "name": "[Module 2] Battery Pack 1 No.",
+        "unit": "",
+        "custom_name": "[Module 2] Battery Pack 1 No.",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320269,
+        "name": "[Module 2] Battery Pack 2 No.",
+        "unit": "",
+        "custom_name": "[Module 2] Battery Pack 2 No.",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320270,
+        "name": "[Module 2] Battery Pack 3 No.",
+        "unit": "",
+        "custom_name": "[Module 2] Battery Pack 3 No.",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320196,
+        "name": "[Module 2] Battery Pack 1 Firmware Version",
+        "unit": "",
+        "custom_name": "[Module 2] Battery Pack 1 Firmware Version",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320211,
+        "name": "[Module 2] Battery Pack 2 Firmware Version",
+        "unit": "",
+        "custom_name": "[Module 2] Battery Pack 2 Firmware Version",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320226,
+        "name": "[Module 2] Battery Pack 3 Firmware Version",
+        "unit": "",
+        "custom_name": "[Module 2] Battery Pack 3 Firmware Version",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320195,
+        "name": "[Module 2] Battery Pack 1 SN",
+        "unit": "",
+        "custom_name": "[Module 2] Battery Pack 1 SN",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320210,
+        "name": "[Module 2] Battery Pack 2 SN",
+        "unit": "",
+        "custom_name": "[Module 2] Battery Pack 2 SN",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320225,
+        "name": "[Module 2] Battery Pack 3 SN",
+        "unit": "",
+        "custom_name": "[Module 2] Battery Pack 3 SN",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320199,
+        "name": "[Module 2] Battery Pack 1 Operating Status",
+        "unit": "",
+        "custom_name": "[Module 2] Battery Pack 1 Operating Status",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320214,
+        "name": "[Module 2] Battery Pack 2 Operating Status",
+        "unit": "",
+        "custom_name": "[Module 2] Battery Pack 2 Operating Status",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320229,
+        "name": "[Module 2] Battery Pack 3 Operating Status",
+        "unit": "",
+        "custom_name": "[Module 2] Battery Pack 3 Operating Status",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320205,
+        "name": "[Module 2] Battery Pack 1 Voltage",
+        "unit": "V",
+        "custom_name": "[Module 2] Battery Pack 1 Voltage",
+        "device_class": "voltage",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320220,
+        "name": "[Module 2] Battery Pack 2 Voltage",
+        "unit": "V",
+        "custom_name": "[Module 2] Battery Pack 2 Voltage",
+        "device_class": "voltage",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320235,
+        "name": "[Module 2] Battery Pack 3 Voltage",
+        "unit": "V",
+        "custom_name": "[Module 2] Battery Pack 3 Voltage",
+        "device_class": "voltage",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320204,
+        "name": "[Module 2] Battery Pack 1 Charge/Discharge Power",
+        "unit": "kW",
+        "custom_name": "[Module 2] Battery Pack 1 Charge/Discharge Power",
+        "device_class": "power",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320219,
+        "name": "[Module 2] Battery Pack 2 Charge/Discharge Power",
+        "unit": "kW",
+        "custom_name": "[Module 2] Battery Pack 2 Charge/Discharge Power",
+        "device_class": "power",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320234,
+        "name": "[Module 2] Battery Pack 3 Charge/Discharge Power",
+        "unit": "kW",
+        "custom_name": "[Module 2] Battery Pack 3 Charge/Discharge Power",
+        "device_class": "power",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320452,
+        "name": "[Module 2] Battery Pack 1 Maximum Temperature",
+        "unit": "°C",
+        "custom_name": "[Module 2] Battery Pack 1 Maximum Temperature",
+        "device_class": "temperature",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320454,
+        "name": "[Module 2] Battery Pack 2 Maximum Temperature",
+        "unit": "°C",
+        "custom_name": "[Module 2] Battery Pack 2 Maximum Temperature",
+        "device_class": "temperature",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320456,
+        "name": "[Module 2] Battery Pack 3 Maximum Temperature",
+        "unit": "°C",
+        "custom_name": "[Module 2] Battery Pack 3 Maximum Temperature",
+        "device_class": "temperature",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320453,
+        "name": "[Module 2] Battery Pack 1 Minimum Temperature",
+        "unit": "°C",
+        "custom_name": "[Module 2] Battery Pack 1 Minimum Temperature",
+        "device_class": "temperature",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320455,
+        "name": "[Module 2] Battery Pack 2 Minimum Temperature",
+        "unit": "°C",
+        "custom_name": "[Module 2] Battery Pack 2 Minimum Temperature",
+        "device_class": "temperature",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320457,
+        "name": "[Module 2] Battery Pack 3 Minimum Temperature",
+        "unit": "°C",
+        "custom_name": "[Module 2] Battery Pack 3 Minimum Temperature",
+        "device_class": "temperature",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320200,
+        "name": "[Module 2] Battery Pack 1 SOC",
+        "unit": "%",
+        "custom_name": "[Module 2] Battery Pack 1 SOC",
+        "device_class": "battery",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320215,
+        "name": "[Module 2] Battery Pack 2 SOC",
+        "unit": "%",
+        "custom_name": "[Module 2] Battery Pack 2 SOC",
+        "device_class": "battery",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320230,
+        "name": "[Module 2] Battery Pack 3 SOC",
+        "unit": "%",
+        "custom_name": "[Module 2] Battery Pack 3 SOC",
+        "device_class": "battery",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320209,
+        "name": "[Module 2] Battery Pack 1 Total Discharge Energy",
+        "unit": "kWh",
+        "custom_name": "[Module 2] Battery Pack 1 Total Discharge Energy",
+        "device_class": "energy",
+        "state_class": "total_increasing",
+    },
+    {
+        "id": 230320224,
+        "name": "[Module 2] Battery Pack 2 Total Discharge Energy",
+        "unit": "kWh",
+        "custom_name": "[Module 2] Battery Pack 2 Total Discharge Energy",
+        "device_class": "energy",
+        "state_class": "total_increasing",
+    },
+    {
+        "id": 230320239,
+        "name": "[Module 2] Battery Pack 3 Total Discharge Energy",
+        "unit": "kWh",
+        "custom_name": "[Module 2] Battery Pack 3 Total Discharge Energy",
+        "device_class": "energy",
+        "state_class": "total_increasing",
+    },
+    {
+        "id": 230320495,
+        "name": "[Module 2] Battery Pack 1 Battery Health Check",
+        "unit": "",
+        "custom_name": "[Module 2] Battery Pack 1 Battery Health Check",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320496,
+        "name": "[Module 2] Battery Pack 2 Battery Health Check",
+        "unit": "",
+        "custom_name": "[Module 2] Battery Pack 2 Battery Health Check",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320497,
+        "name": "[Module 2] Battery Pack 3 Battery Health Check",
+        "unit": "",
+        "custom_name": "[Module 2] Battery Pack 3 Battery Health Check",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320501,
+        "name": "[Module 2] Battery Pack 1 Heating Status",
+        "unit": "",
+        "custom_name": "[Module 2] Battery Pack 1 Heating Status",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320502,
+        "name": "[Module 2] Battery Pack 2 Heating Status",
+        "unit": "",
+        "custom_name": "[Module 2] Battery Pack 2 Heating Status",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320503,
+        "name": "[Module 2] Battery Pack 3 Heating Status",
+        "unit": "",
+        "custom_name": "[Module 2] Battery Pack 3 Heating Status",
+        "device_class": None,
+        "state_class": None,
+    },
+]
+
+BATTERY_MODULE_SIGNALS_3 = [
+    {
+        "id": 230320640,
+        "name": "[Module 3] No.",
+        "unit": "",
+        "custom_name": "[Module 3] No.",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320526,
+        "name": "[Module 3] Working Status",
+        "unit": "",
+        "custom_name": "[Module 3] Working Status",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320536,
+        "name": "[Module 3] SN",
+        "unit": "",
+        "custom_name": "[Module 3] SN",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320542,
+        "name": "[Module 3] Software Version",
+        "unit": "",
+        "custom_name": "[Module 3] Software Version",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320529,
+        "name": "[Module 3] SOC",
+        "unit": "%",
+        "custom_name": "[Module 3] SOC",
+        "device_class": "battery",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320527,
+        "name": "[Module 3] Charge and Discharge Power",
+        "unit": "kW",
+        "custom_name": "[Module 3] Charge and Discharge Power",
+        "device_class": "power",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320535,
+        "name": "[Module 3] Internal Temperature",
+        "unit": "°C",
+        "custom_name": "[Module 3] Internal Temperature",
+        "device_class": "temperature",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320532,
+        "name": "[Module 3] Daily Charge Energy",
+        "unit": "kWh",
+        "custom_name": "[Module 3] Daily Charge Energy",
+        "device_class": "energy",
+        "state_class": "total_increasing",
+    },
+    {
+        "id": 230320533,
+        "name": "[Module 3] Daily Discharge Energy",
+        "unit": "kWh",
+        "custom_name": "[Module 3] Daily Discharge Energy",
+        "device_class": "energy",
+        "state_class": "total_increasing",
+    },
+    {
+        "id": 230320539,
+        "name": "[Module 3] Total Discharge Energy",
+        "unit": "kWh",
+        "custom_name": "[Module 3] Total Discharge Energy",
+        "device_class": "energy",
+        "state_class": "total_increasing",
+    },
+    {
+        "id": 230320528,
+        "name": "[Module 3] Bus Voltage",
+        "unit": "V",
+        "custom_name": "[Module 3] Bus Voltage",
+        "device_class": "voltage",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320534,
+        "name": "[Module 3] Bus Current",
+        "unit": "A",
+        "custom_name": "[Module 3] Bus Current",
+        "device_class": "current",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320516,
+        "name": "[Module 3] FE Connection",
+        "unit": "",
+        "custom_name": "[Module 3] FE Connection",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320538,
+        "name": "[Module 3] Total Charge Energy",
+        "unit": "kWh",
+        "custom_name": "[Module 3] Total Charge Energy",
+        "device_class": "energy",
+        "state_class": "total_increasing",
+    },
+    {
+        "id": 230320646,
+        "name": "[Module 3] Battery Pack 1 No.",
+        "unit": "",
+        "custom_name": "[Module 3] Battery Pack 1 No.",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320647,
+        "name": "[Module 3] Battery Pack 2 No.",
+        "unit": "",
+        "custom_name": "[Module 3] Battery Pack 2 No.",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320648,
+        "name": "[Module 3] Battery Pack 3 No.",
+        "unit": "",
+        "custom_name": "[Module 3] Battery Pack 3 No.",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320544,
+        "name": "[Module 3] Battery Pack 1 Firmware Version",
+        "unit": "",
+        "custom_name": "[Module 3] Battery Pack 1 Firmware Version",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320555,
+        "name": "[Module 3] Battery Pack 2 Firmware Version",
+        "unit": "",
+        "custom_name": "[Module 3] Battery Pack 2 Firmware Version",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320566,
+        "name": "[Module 3] Battery Pack 3 Firmware Version",
+        "unit": "",
+        "custom_name": "[Module 3] Battery Pack 3 Firmware Version",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320543,
+        "name": "[Module 3] Battery Pack 1 SN",
+        "unit": "",
+        "custom_name": "[Module 3] Battery Pack 1 SN",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320554,
+        "name": "[Module 3] Battery Pack 2 SN",
+        "unit": "",
+        "custom_name": "[Module 3] Battery Pack 2 SN",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320565,
+        "name": "[Module 3] Battery Pack 3 SN",
+        "unit": "",
+        "custom_name": "[Module 3] Battery Pack 3 SN",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320545,
+        "name": "[Module 3] Battery Pack 1 Operating Status",
+        "unit": "",
+        "custom_name": "[Module 3] Battery Pack 1 Operating Status",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320556,
+        "name": "[Module 3] Battery Pack 2 Operating Status",
+        "unit": "",
+        "custom_name": "[Module 3] Battery Pack 2 Operating Status",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320567,
+        "name": "[Module 3] Battery Pack 3 Operating Status",
+        "unit": "",
+        "custom_name": "[Module 3] Battery Pack 3 Operating Status",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320549,
+        "name": "[Module 3] Battery Pack 1 Voltage",
+        "unit": "V",
+        "custom_name": "[Module 3] Battery Pack 1 Voltage",
+        "device_class": "voltage",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320560,
+        "name": "[Module 3] Battery Pack 2 Voltage",
+        "unit": "V",
+        "custom_name": "[Module 3] Battery Pack 2 Voltage",
+        "device_class": "voltage",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320571,
+        "name": "[Module 3] Battery Pack 3 Voltage",
+        "unit": "V",
+        "custom_name": "[Module 3] Battery Pack 3 Voltage",
+        "device_class": "voltage",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320548,
+        "name": "[Module 3] Battery Pack 1 Charge/Discharge Power",
+        "unit": "kW",
+        "custom_name": "[Module 3] Battery Pack 1 Charge/Discharge Power",
+        "device_class": "power",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320559,
+        "name": "[Module 3] Battery Pack 2 Charge/Discharge Power",
+        "unit": "kW",
+        "custom_name": "[Module 3] Battery Pack 2 Charge/Discharge Power",
+        "device_class": "power",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320570,
+        "name": "[Module 3] Battery Pack 3 Charge/Discharge Power",
+        "unit": "kW",
+        "custom_name": "[Module 3] Battery Pack 3 Charge/Discharge Power",
+        "device_class": "power",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320576,
+        "name": "[Module 3] Battery Pack 1 Maximum Temperature",
+        "unit": "°C",
+        "custom_name": "[Module 3] Battery Pack 1 Maximum Temperature",
+        "device_class": "temperature",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320578,
+        "name": "[Module 3] Battery Pack 2 Maximum Temperature",
+        "unit": "°C",
+        "custom_name": "[Module 3] Battery Pack 2 Maximum Temperature",
+        "device_class": "temperature",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320580,
+        "name": "[Module 3] Battery Pack 3 Maximum Temperature",
+        "unit": "°C",
+        "custom_name": "[Module 3] Battery Pack 3 Maximum Temperature",
+        "device_class": "temperature",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320577,
+        "name": "[Module 3] Battery Pack 1 Minimum Temperature",
+        "unit": "°C",
+        "custom_name": "[Module 3] Battery Pack 1 Minimum Temperature",
+        "device_class": "temperature",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320579,
+        "name": "[Module 3] Battery Pack 2 Minimum Temperature",
+        "unit": "°C",
+        "custom_name": "[Module 3] Battery Pack 2 Minimum Temperature",
+        "device_class": "temperature",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320581,
+        "name": "[Module 3] Battery Pack 3 Minimum Temperature",
+        "unit": "°C",
+        "custom_name": "[Module 3] Battery Pack 3 Minimum Temperature",
+        "device_class": "temperature",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320546,
+        "name": "[Module 3] Battery Pack 1 Capacity",
+        "unit": "Ah",
+        "custom_name": "[Module 3] Battery Pack 1 Capacity",
+        "device_class": None,
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320557,
+        "name": "[Module 3] Battery Pack 2 Capacity",
+        "unit": "Ah",
+        "custom_name": "[Module 3] Battery Pack 2 Capacity",
+        "device_class": None,
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320568,
+        "name": "[Module 3] Battery Pack 3 Capacity",
+        "unit": "Ah",
+        "custom_name": "[Module 3] Battery Pack 3 Capacity",
+        "device_class": None,
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320552,
+        "name": "[Module 3] Battery Pack 1 Current",
+        "unit": "A",
+        "custom_name": "[Module 3] Battery Pack 1 Current",
+        "device_class": "current",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320563,
+        "name": "[Module 3] Battery Pack 2 Current",
+        "unit": "A",
+        "custom_name": "[Module 3] Battery Pack 2 Current",
+        "device_class": "current",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320574,
+        "name": "[Module 3] Battery Pack 3 Current",
+        "unit": "A",
+        "custom_name": "[Module 3] Battery Pack 3 Current",
+        "device_class": "current",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320553,
+        "name": "[Module 3] Battery Pack 1 SOC",
+        "unit": "%",
+        "custom_name": "[Module 3] Battery Pack 1 SOC",
+        "device_class": "battery",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320564,
+        "name": "[Module 3] Battery Pack 2 SOC",
+        "unit": "%",
+        "custom_name": "[Module 3] Battery Pack 2 SOC",
+        "device_class": "battery",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320575,
+        "name": "[Module 3] Battery Pack 3 SOC",
+        "unit": "%",
+        "custom_name": "[Module 3] Battery Pack 3 SOC",
+        "device_class": "battery",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320504,
+        "name": "[Module 3] Battery Pack 1 High Voltage Fuse Status",
+        "unit": "",
+        "custom_name": "[Module 3] Battery Pack 1 High Voltage Fuse Status",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320505,
+        "name": "[Module 3] Battery Pack 2 High Voltage Fuse Status",
+        "unit": "",
+        "custom_name": "[Module 3] Battery Pack 2 High Voltage Fuse Status",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320506,
+        "name": "[Module 3] Battery Pack 3 High Voltage Fuse Status",
+        "unit": "",
+        "custom_name": "[Module 3] Battery Pack 3 High Voltage Fuse Status",
+        "device_class": None,
+        "state_class": None,
+    },
+]
+
+BATTERY_MODULE_SIGNALS_4 = [
+    {
+        "id": 230320641,
+        "name": "[Module 4] No.",
+        "unit": "",
+        "custom_name": "[Module 4] No.",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320583,
+        "name": "[Module 4] Working Status",
+        "unit": "",
+        "custom_name": "[Module 4] Working Status",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320593,
+        "name": "[Module 4] SN",
+        "unit": "",
+        "custom_name": "[Module 4] SN",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320599,
+        "name": "[Module 4] Software Version",
+        "unit": "",
+        "custom_name": "[Module 4] Software Version",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320586,
+        "name": "[Module 4] SOC",
+        "unit": "%",
+        "custom_name": "[Module 4] SOC",
+        "device_class": "battery",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320584,
+        "name": "[Module 4] Charge and Discharge Power",
+        "unit": "kW",
+        "custom_name": "[Module 4] Charge and Discharge Power",
+        "device_class": "power",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320592,
+        "name": "[Module 4] Internal Temperature",
+        "unit": "°C",
+        "custom_name": "[Module 4] Internal Temperature",
+        "device_class": "temperature",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320589,
+        "name": "[Module 4] Daily Charge Energy",
+        "unit": "kWh",
+        "custom_name": "[Module 4] Daily Charge Energy",
+        "device_class": "energy",
+        "state_class": "total_increasing",
+    },
+    {
+        "id": 230320590,
+        "name": "[Module 4] Daily Discharge Energy",
+        "unit": "kWh",
+        "custom_name": "[Module 4] Daily Discharge Energy",
+        "device_class": "energy",
+        "state_class": "total_increasing",
+    },
+    {
+        "id": 230320596,
+        "name": "[Module 4] Total Discharge Energy",
+        "unit": "kWh",
+        "custom_name": "[Module 4] Total Discharge Energy",
+        "device_class": "energy",
+        "state_class": "total_increasing",
+    },
+    {
+        "id": 230320585,
+        "name": "[Module 4] Bus Voltage",
+        "unit": "V",
+        "custom_name": "[Module 4] Bus Voltage",
+        "device_class": "voltage",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320591,
+        "name": "[Module 4] Bus Current",
+        "unit": "A",
+        "custom_name": "[Module 4] Bus Current",
+        "device_class": "current",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320517,
+        "name": "[Module 4] FE Connection",
+        "unit": "",
+        "custom_name": "[Module 4] FE Connection",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320595,
+        "name": "[Module 4] Total Charge Energy",
+        "unit": "kWh",
+        "custom_name": "[Module 4] Total Charge Energy",
+        "device_class": "energy",
+        "state_class": "total_increasing",
+    },
+    {
+        "id": 230320649,
+        "name": "[Module 4] Battery Pack 1 No.",
+        "unit": "",
+        "custom_name": "[Module 4] Battery Pack 1 No.",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320650,
+        "name": "[Module 4] Battery Pack 2 No.",
+        "unit": "",
+        "custom_name": "[Module 4] Battery Pack 2 No.",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320651,
+        "name": "[Module 4] Battery Pack 3 No.",
+        "unit": "",
+        "custom_name": "[Module 4] Battery Pack 3 No.",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320601,
+        "name": "[Module 4] Battery Pack 1 Firmware Version",
+        "unit": "",
+        "custom_name": "[Module 4] Battery Pack 1 Firmware Version",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320612,
+        "name": "[Module 4] Battery Pack 2 Firmware Version",
+        "unit": "",
+        "custom_name": "[Module 4] Battery Pack 2 Firmware Version",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320623,
+        "name": "[Module 4] Battery Pack 3 Firmware Version",
+        "unit": "",
+        "custom_name": "[Module 4] Battery Pack 3 Firmware Version",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320600,
+        "name": "[Module 4] Battery Pack 1 SN",
+        "unit": "",
+        "custom_name": "[Module 4] Battery Pack 1 SN",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320611,
+        "name": "[Module 4] Battery Pack 2 SN",
+        "unit": "",
+        "custom_name": "[Module 4] Battery Pack 2 SN",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320622,
+        "name": "[Module 4] Battery Pack 3 SN",
+        "unit": "",
+        "custom_name": "[Module 4] Battery Pack 3 SN",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320602,
+        "name": "[Module 4] Battery Pack 1 Operating Status",
+        "unit": "",
+        "custom_name": "[Module 4] Battery Pack 1 Operating Status",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320613,
+        "name": "[Module 4] Battery Pack 2 Operating Status",
+        "unit": "",
+        "custom_name": "[Module 4] Battery Pack 2 Operating Status",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320624,
+        "name": "[Module 4] Battery Pack 3 Operating Status",
+        "unit": "",
+        "custom_name": "[Module 4] Battery Pack 3 Operating Status",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320606,
+        "name": "[Module 4] Battery Pack 1 Voltage",
+        "unit": "V",
+        "custom_name": "[Module 4] Battery Pack 1 Voltage",
+        "device_class": "voltage",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320617,
+        "name": "[Module 4] Battery Pack 2 Voltage",
+        "unit": "V",
+        "custom_name": "[Module 4] Battery Pack 2 Voltage",
+        "device_class": "voltage",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320628,
+        "name": "[Module 4] Battery Pack 3 Voltage",
+        "unit": "V",
+        "custom_name": "[Module 4] Battery Pack 3 Voltage",
+        "device_class": "voltage",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320605,
+        "name": "[Module 4] Battery Pack 1 Charge/Discharge Power",
+        "unit": "kW",
+        "custom_name": "[Module 4] Battery Pack 1 Charge/Discharge Power",
+        "device_class": "power",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320616,
+        "name": "[Module 4] Battery Pack 2 Charge/Discharge Power",
+        "unit": "kW",
+        "custom_name": "[Module 4] Battery Pack 2 Charge/Discharge Power",
+        "device_class": "power",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320627,
+        "name": "[Module 4] Battery Pack 3 Charge/Discharge Power",
+        "unit": "kW",
+        "custom_name": "[Module 4] Battery Pack 3 Charge/Discharge Power",
+        "device_class": "power",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320633,
+        "name": "[Module 4] Battery Pack 1 Maximum Temperature",
+        "unit": "°C",
+        "custom_name": "[Module 4] Battery Pack 1 Maximum Temperature",
+        "device_class": "temperature",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320635,
+        "name": "[Module 4] Battery Pack 2 Maximum Temperature",
+        "unit": "°C",
+        "custom_name": "[Module 4] Battery Pack 2 Maximum Temperature",
+        "device_class": "temperature",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320637,
+        "name": "[Module 4] Battery Pack 3 Maximum Temperature",
+        "unit": "°C",
+        "custom_name": "[Module 4] Battery Pack 3 Maximum Temperature",
+        "device_class": "temperature",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320634,
+        "name": "[Module 4] Battery Pack 1 Minimum Temperature",
+        "unit": "°C",
+        "custom_name": "[Module 4] Battery Pack 1 Minimum Temperature",
+        "device_class": "temperature",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320636,
+        "name": "[Module 4] Battery Pack 2 Minimum Temperature",
+        "unit": "°C",
+        "custom_name": "[Module 4] Battery Pack 2 Minimum Temperature",
+        "device_class": "temperature",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320638,
+        "name": "[Module 4] Battery Pack 3 Minimum Temperature",
+        "unit": "°C",
+        "custom_name": "[Module 4] Battery Pack 3 Minimum Temperature",
+        "device_class": "temperature",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320603,
+        "name": "[Module 4] Battery Pack 1 Capacity",
+        "unit": "Ah",
+        "custom_name": "[Module 4] Battery Pack 1 Capacity",
+        "device_class": None,
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320614,
+        "name": "[Module 4] Battery Pack 2 Capacity",
+        "unit": "Ah",
+        "custom_name": "[Module 4] Battery Pack 2 Capacity",
+        "device_class": None,
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320625,
+        "name": "[Module 4] Battery Pack 3 Capacity",
+        "unit": "Ah",
+        "custom_name": "[Module 4] Battery Pack 3 Capacity",
+        "device_class": None,
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320609,
+        "name": "[Module 4] Battery Pack 1 Current",
+        "unit": "A",
+        "custom_name": "[Module 4] Battery Pack 1 Current",
+        "device_class": "current",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320620,
+        "name": "[Module 4] Battery Pack 2 Current",
+        "unit": "A",
+        "custom_name": "[Module 4] Battery Pack 2 Current",
+        "device_class": "current",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320631,
+        "name": "[Module 4] Battery Pack 3 Current",
+        "unit": "A",
+        "custom_name": "[Module 4] Battery Pack 3 Current",
+        "device_class": "current",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320610,
+        "name": "[Module 4] Battery Pack 1 SOC",
+        "unit": "%",
+        "custom_name": "[Module 4] Battery Pack 1 SOC",
+        "device_class": "battery",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320621,
+        "name": "[Module 4] Battery Pack 2 SOC",
+        "unit": "%",
+        "custom_name": "[Module 4] Battery Pack 2 SOC",
+        "device_class": "battery",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320632,
+        "name": "[Module 4] Battery Pack 3 SOC",
+        "unit": "%",
+        "custom_name": "[Module 4] Battery Pack 3 SOC",
+        "device_class": "battery",
+        "state_class": "measurement",
+    },
+    {
+        "id": 230320507,
+        "name": "[Module 4] Battery Pack 1 High Voltage Fuse Status",
+        "unit": "",
+        "custom_name": "[Module 4] Battery Pack 1 High Voltage Fuse Status",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320508,
+        "name": "[Module 4] Battery Pack 2 High Voltage Fuse Status",
+        "unit": "",
+        "custom_name": "[Module 4] Battery Pack 2 High Voltage Fuse Status",
+        "device_class": None,
+        "state_class": None,
+    },
+    {
+        "id": 230320509,
+        "name": "[Module 4] Battery Pack 3 High Voltage Fuse Status",
+        "unit": "",
+        "custom_name": "[Module 4] Battery Pack 3 High Voltage Fuse Status",
+        "device_class": None,
+        "state_class": None,
+    },
+]
+
+MODULE_SIGNAL_MAP = {
+    "1": BATTERY_MODULE_SIGNALS_1,
+    "2": BATTERY_MODULE_SIGNALS_2,
+    "3": BATTERY_MODULE_SIGNALS_3,
+    "4": BATTERY_MODULE_SIGNALS_4,
+}
+
 
 async def async_setup_entry(hass, entry, async_add_entities):
     device_type = entry.data.get("device_type")
@@ -325,6 +2014,19 @@ async def async_setup_entry(hass, entry, async_add_entities):
                     response = await hass.async_add_executor_job(
                         client.get_current_plant_data, device_id
                     )
+                elif device_type == "Battery":
+                    response = await hass.async_add_executor_job(
+                        client.get_battery_status, device_id
+                    )
+                    module_data = {}
+                    for module_id in ["1", "2", "3", "4"]:
+                        stats = await hass.async_add_executor_job(
+                            client.get_battery_module_stats, device_id, module_id
+                        )
+                        if stats:
+                            module_data[module_id] = stats
+                    response = {"battery": response, "modules": module_data}
+
                 else:
                     raise Exception("Unsupported device type")
 
@@ -355,12 +2057,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
                             pass
 
                     if recovery_success:
-                        import asyncio
-
                         await asyncio.sleep(2)
                     else:
-                        import asyncio
-
                         await asyncio.sleep(1)
                 else:
                     raise UpdateFailed(
@@ -387,26 +2085,69 @@ async def async_setup_entry(hass, entry, async_add_entities):
         signals = PLANT_SIGNALS
         id_key = "key"
         entity_class = FusionSolarPlantSensor
+    elif device_type == "Battery":
+        signals = BATTERY_STATUS_SIGNALS
+        id_key = "id"
+        entity_class = FusionSolarBatterySensor
     else:
         _LOGGER.error("Unknown device type: %s", device_type)
         return
 
-    # Create entities
+    unique_ids = set()
     entities = []
+
     for signal in signals:
-        entity = entity_class(
-            coordinator,
-            signal[id_key],
-            signal.get("custom_name", signal["name"]),
-            signal["unit"],
-            device_info,
-            signal.get("device_class"),
-            signal.get("state_class"),
-        )
-        entities.append(entity)
-        _LOGGER.error(
-            "Created entity: %s with unique_id: %s", entity.name, entity.unique_id
-        )
+        unique_id = f"{list(device_info['identifiers'])[0][1]}_{signal[id_key]}"
+        if unique_id not in unique_ids:
+            entity = entity_class(
+                coordinator,
+                signal[id_key],
+                signal.get("custom_name", signal["name"]),
+                signal["unit"],
+                device_info,
+                signal.get("device_class"),
+                signal.get("state_class"),
+            )
+            entities.append(entity)
+            unique_ids.add(unique_id)
+
+    import re
+
+    modules_data = coordinator.data.get("modules", {})
+    for module_id, module_signals in MODULE_SIGNAL_MAP.items():
+        module_signals_data = modules_data.get(module_id)
+        if not module_signals_data:
+            continue
+
+        valid_packs = set()
+        for signal in module_signals_data:
+            name = signal.get("name", "")
+            match = re.search(r"\[Battery pack (\d+)\] SN", name, re.IGNORECASE)
+            if match and signal.get("realValue"):
+                valid_packs.add(match.group(1))
+
+        for signal in module_signals:
+            name = signal.get("name", "")
+            pack_match = re.search(r"Battery pack (\d+)", name, re.IGNORECASE)
+            if pack_match:
+                pack_no = pack_match.group(1)
+                if pack_no not in valid_packs:
+                    continue
+
+            unique_id = f"{list(device_info['identifiers'])[0][1]}_module{module_id}_{signal['id']}"
+            if unique_id not in unique_ids:
+                entity = FusionSolarBatteryModuleSensor(
+                    coordinator,
+                    signal["id"],
+                    signal.get("custom_name", signal["name"]),
+                    signal["unit"],
+                    device_info,
+                    module_id,
+                    signal.get("device_class"),
+                    signal.get("state_class"),
+                )
+                entities.append(entity)
+                unique_ids.add(unique_id)
 
     _LOGGER.error("Adding %d entities for device %s", len(entities), device_name)
     async_add_entities(entities)
@@ -518,4 +2259,107 @@ class FusionSolarPlantSensor(CoordinatorEntity, SensorEntity):
     def available(self):
         return (
             self.coordinator.last_update_success and self.coordinator.data is not None
+        )
+
+
+#
+#   Battery
+#
+
+
+class FusionSolarBatterySensor(CoordinatorEntity, SensorEntity):
+    def __init__(
+        self,
+        coordinator,
+        signal_id,
+        name,
+        unit,
+        device_info,
+        device_class=None,
+        state_class=None,
+    ):
+        super().__init__(coordinator)
+        self._signal_id = signal_id
+        self._attr_name = name
+        self._attr_native_unit_of_measurement = unit
+        self._attr_device_info = device_info
+        self._attr_unique_id = f"{list(device_info['identifiers'])[0][1]}_{signal_id}"
+        self._attr_device_class = device_class
+        self._attr_state_class = state_class
+
+    @property
+    def state(self):
+        data = self.coordinator.data
+        if not data:
+            return None
+
+        signals = data.get("battery", [])
+        if not signals:
+            return None
+
+        for signal in signals:
+            if signal["id"] == self._signal_id:
+                if signal.get("unit"):
+                    try:
+                        return float(signal.get("value"))
+                    except (TypeError, ValueError):
+                        return None
+                else:
+                    return signal.get("value")
+        return None
+
+    @property
+    def available(self):
+        return (
+            self.coordinator.last_update_success and self.coordinator.data is not None
+        )
+
+
+class FusionSolarBatteryModuleSensor(CoordinatorEntity, SensorEntity):
+    def __init__(
+        self,
+        coordinator,
+        signal_id,
+        name,
+        unit,
+        device_info,
+        module_id,
+        device_class=None,
+        state_class=None,
+    ):
+        super().__init__(coordinator)
+        self._signal_id = signal_id
+        self._attr_name = name
+        self._attr_native_unit_of_measurement = unit
+        self._attr_device_info = device_info
+        self._attr_unique_id = (
+            f"{list(device_info['identifiers'])[0][1]}_module{module_id}_{signal_id}"
+        )
+        self._attr_device_class = device_class
+        self._attr_state_class = state_class
+        self._module_id = module_id
+
+    @property
+    def state(self):
+        data = self.coordinator.data
+        if not data or "modules" not in data:
+            return None
+        module_signals = data["modules"].get(self._module_id, [])
+        for signal in module_signals:
+            if signal["id"] == self._signal_id:
+                try:
+                    return float(signal.get("realValue"))
+                except (TypeError, ValueError):
+                    return signal.get("realValue")
+        return None
+
+    @property
+    def available(self):
+        data = self.coordinator.data
+        return (
+            self.coordinator.last_update_success
+            and data is not None
+            and "modules" in data
+            and self._module_id in data["modules"]
+            and bool(data["modules"][self._module_id])
         )
