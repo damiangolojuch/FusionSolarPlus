@@ -1,6 +1,6 @@
 {
   "domain": "fusionsolarplus",
-  "name": "FusionSolarPlus",
+  "name": "FusionSolarPlusFork",
   "codeowners": ["@jortvanschijndel"],
   "config_flow": true,
   "dependencies": [],
@@ -13,5 +13,5 @@
     "Pillow",
     "beautifulsoup4"
   ],
-  "version": "1.2.0"
+  "version": "1.2.1"
 }
