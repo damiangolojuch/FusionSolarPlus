@@ -326,6 +326,17 @@ BATTERY_STATUS_SIGNALS = [
     },
 ]
 
+FLOW_SIGNALS = [
+    {
+        "key": "electricalLoad",
+        "name": "Electrical Load",
+        "unit": "kW",
+        "custom_name": "Current Electrical Load",
+        "device_class": SensorDeviceClass.POWER,
+        "state_class": SensorStateClass.MEASUREMENT,
+    },
+]
+
 BATTERY_MODULE_SIGNALS_1 = [
     {
         "id": 230320252,
@@ -2026,6 +2037,11 @@ async def async_setup_entry(hass, entry, async_add_entities):
                         if stats:
                             module_data[module_id] = stats
                     response = {"battery": response, "modules": module_data}
+                elif device_type == "Flow":
+                    response = await hass.async_add_executor_job(
+                        client.get_plant_flow, device_id
+                    )
+                    response = {"flow": response}
 
                 else:
                     raise Exception("Unsupported device type")
@@ -2089,6 +2105,10 @@ async def async_setup_entry(hass, entry, async_add_entities):
         signals = BATTERY_STATUS_SIGNALS
         id_key = "id"
         entity_class = FusionSolarBatterySensor
+    elif device_type == "Flow":
+        signals = FLOW_SIGNALS
+        id_key = "key"
+        entity_class = FusionSolarFlowSensor
     else:
         _LOGGER.error("Unknown device type: %s", device_type)
         return
@@ -2360,4 +2380,59 @@ class FusionSolarBatteryModuleSensor(CoordinatorEntity, SensorEntity):
             and "modules" in data
             and self._module_id in data["modules"]
             and bool(data["modules"][self._module_id])
+        )
+
+
+#
+#   Flow
+#
+
+
+class FusionSolarFlowSensor(CoordinatorEntity, SensorEntity):
+    def __init__(
+        self,
+        coordinator,
+        key,
+        name,
+        unit,
+        device_info,
+        device_class=None,
+        state_class=None,
+    ):
+        super().__init__(coordinator)
+        self._key = key
+        self._attr_name = name
+        self._attr_native_unit_of_measurement = unit
+        self._attr_device_info = device_info
+        self._attr_unique_id = f"{list(device_info['identifiers'])[0][1]}_{key}"
+        self._attr_device_class = device_class
+        self._attr_state_class = state_class
+
+    @property
+    def state(self):
+        data = self.coordinator.data
+        if not data or "flow" not in data:
+            return None
+
+        flow_data = data["flow"]
+        if "data" not in flow_data or "flow" not in flow_data["data"]:
+            return None
+
+        nodes = flow_data["data"]["flow"].get("nodes", [])
+
+        # Look for the electrical load node
+        for node in nodes:
+            if node.get("name") == "neteco.pvms.KPI.kpiView.electricalLoad":
+                value = node.get("value")
+                if value is not None:
+                    try:
+                        return float(value)
+                    except (TypeError, ValueError):
+                        return None
+        return None
+
+    @property
+    def available(self):
+        return (
+            self.coordinator.last_update_success and self.coordinator.data is not None
         )
